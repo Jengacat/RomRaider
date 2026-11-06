@@ -21,6 +21,7 @@ package com.romraider.io.protocol.subuds.iso15765;
 
 import static com.romraider.util.ParamChecker.checkNotNullOrEmpty;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,29 +29,24 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.TreeSet;
 
 import com.romraider.logger.ecu.comms.query.EcuQuery;
 import com.romraider.logger.ecu.comms.query.EcuQueryData;
 import com.romraider.logger.ecu.exception.UnsupportedProtocolException;
+import com.romraider.util.ResourceUtil;
 
 /**
- * How a set of RAM queries is packed into dynamically defined identifiers.
- * <p>
- * Every byte the queries need is collected, neighbouring bytes are merged into
- * ranges, and the ranges are spread over identifiers 0xF300 - 0xF313. The ECU
- * limits (Subaru FA20DIT, service 0x2C sub-function 0x02, format 0x14):
- * <ul>
- * <li>up to 10 ranges per identifier, 1 - 100 bytes each, at most 0x3FE bytes per identifier;</li>
- * <li>20 identifiers;</li>
- * <li>RAM 0xFFF80000 - 0xFFF9FFFE (the end test is start + length &lt;= 0xFFF9FFFF);</li>
- * <li>the 0x22 reply, including its 0x62 byte, at most 0xFFF bytes.</li>
- * </ul>
- * Logger definitions give RAM addresses as 3 bytes (0xF8CD54); an address of
- * 3 bytes or fewer with the top bit set gets 0xFF as its high byte, the same
- * convention as the NCS protocol.
+ * Packs the queries' RAM bytes into address ranges and dynamic identifiers
+ * (F300-F313) within the ECU limits: 10 ranges per identifier, 100 bytes per
+ * range, 0x3FE bytes per identifier, a reply of at most 0xFFF bytes, and RAM
+ * 0xFFF80000-0xFFF9FFFE. A 3-byte address with the top bit set gets 0xFF as its
+ * high byte (0xF8CD54 -> 0xFFF8CD54), as in the NCS protocol.
  */
 public final class SUBUDSAddressPlan {
+    private static final ResourceBundle rb = new ResourceUtil().getBundle(
+            SUBUDSAddressPlan.class.getName());
     public static final int FIRST_DID = 0xF300;
     public static final int MAX_DIDS = 20;
     public static final int MAX_RANGES_PER_DID = 10;
@@ -86,9 +82,9 @@ public final class SUBUDSAddressPlan {
             final long[] bytes = byteAddresses(query);
             for (long b : bytes) {
                 if (b < RAM_START || b + 1 > RAM_LIMIT) {
-                    throw new UnsupportedProtocolException(String.format(
-                            "Address 0x%08X of %s is outside the ECU RAM that can be logged " +
-                            "(0xFFF80000 - 0xFFF9FFFE)", b, query.getLoggerData().getName()));
+                    throw new UnsupportedProtocolException(MessageFormat.format(
+                            rb.getString("ADDRESSOUTSIDE"), query.getLoggerData().getName(),
+                            String.format("0x%08X", b)));
                 }
                 needed.add(b);
             }
@@ -124,9 +120,9 @@ public final class SUBUDSAddressPlan {
             didBytes += r[1];
         }
         if (perDid.size() > MAX_DIDS) {
-            throw new UnsupportedProtocolException(String.format(
-                    "Too many parameters selected: %d address ranges need %d identifiers, the ECU has %d",
-                    merged.size(), perDid.size(), MAX_DIDS));
+            throw new UnsupportedProtocolException(MessageFormat.format(
+                    rb.getString("TOOMANYRANGES"), String.valueOf(merged.size()),
+                    String.valueOf(perDid.size()), String.valueOf(MAX_DIDS)));
         }
 
         // reply offset of every needed byte
@@ -144,9 +140,9 @@ public final class SUBUDSAddressPlan {
             }
         }
         if (offset > MAX_REPLY_BYTES) {
-            throw new UnsupportedProtocolException(String.format(
-                    "Too many parameters selected: the reply would be %d bytes, the ECU sends at most %d",
-                    offset, MAX_REPLY_BYTES));
+            throw new UnsupportedProtocolException(MessageFormat.format(
+                    rb.getString("REPLYTOOLONG"), String.valueOf(offset),
+                    String.valueOf(MAX_REPLY_BYTES)));
         }
 
         final Map<String, int[]> positions = new HashMap<String, int[]>();

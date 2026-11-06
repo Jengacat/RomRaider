@@ -22,37 +22,21 @@ package com.romraider.io.protocol;
 import com.romraider.logger.ecu.definition.Module;
 
 /**
- * Subaru UDS logging over ISO 15765 (CAN): RAM parameters are read through
- * dynamically defined data identifiers.
- * The extended diagnostic session (0x10 0x03) allows DynamicallyDefineDataIdentifier
- * (0x2C) by memory address for RAM, without SecurityAccess, and ReadDataByIdentifier
- * (0x22) reads the defined identifiers back.
+ * Subaru UDS logging over CAN: RAM read through dynamically defined identifiers.
  */
 public interface ProtocolSUBUDS extends Protocol {
 
-    /** 0x10 0x03, extended diagnostic session. */
     byte[] constructStartDiagRequest(Module module);
 
-    /** 0x10 0x01, back to the default session (also clears the definitions in the ECU). */
     byte[] constructEcuStopRequest(Module module);
 
-    /** 0x3E 0x00, TesterPresent. */
     byte[] constructTesterPresentRequest(Module module);
 
-    /** 0x2C 0x03, clear all dynamically defined identifiers. */
     byte[] constructClearAddressRequest(Module module);
 
-    /**
-     * 0x2C 0x02 DID 0x14 then 4-byte address and 1-byte length per range.
-     * @param did - dynamic identifier, 0xF300 - 0xF313
-     * @param addresses - start address of each range (4 bytes each)
-     * @param lengths - length of each range
-     */
     byte[] constructLoadAddressRequest(Module module, int did, byte[][] addresses, int[] lengths);
 
-    /** Checks a 0x6C 0x02 DID reply (or 0x6C 0x03 for a clear, did &lt; 0). */
     void validateLoadAddressResponse(byte[] response, int did);
 
-    /** 0x22 followed by each DID. */
     byte[] constructReadAddressRequest(Module module, int[] dids);
 }

@@ -35,24 +35,18 @@ public interface LoggerProtocolSUBUDS extends LoggerProtocol {
 
     byte[] constructClearAddressRequest(Module module);
 
-    /** Pack the queries into dynamic identifiers and address ranges. */
     SUBUDSAddressPlan buildAddressPlan(Collection<EcuQuery> queries);
 
-    /** One 0x2C 0x02 request per dynamic identifier of the plan. */
     byte[][] constructLoadAddressRequests(Module module, SUBUDSAddressPlan plan);
 
     void validateLoadAddressResponse(byte[] response, int did);
 
-    /** One 0x22 request reading every identifier of the plan. */
     byte[] constructReadAddressRequest(Module module, SUBUDSAddressPlan plan);
 
-    /** Buffer for the 0x62 reply to the plan's read request. */
     byte[] constructReadAddressResponse(SUBUDSAddressPlan plan);
 
-    /** True when the reply says the identifiers are no longer defined (session dropped). */
     boolean isDefinitionLost(byte[] response);
 
-    /** Sets each query's response from a 0x62 reply. */
     void processReadAddressResponses(
             Collection<EcuQuery> queries, byte[] response, SUBUDSAddressPlan plan);
 

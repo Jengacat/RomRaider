@@ -36,16 +36,8 @@ import com.romraider.logger.ecu.exception.InvalidResponseException;
 import com.romraider.logger.ecu.exception.UnsupportedProtocolException;
 
 /**
- * Request building and reply checks for Subaru UDS logging over CAN.
- * <pre>
- * ECU ID           000007E0 AA                           -> 000007E8 EA ... (SSM init, also answered in this session)
- * start            000007E0 10 03                        -> 000007E8 50 03
- * clear all        000007E0 2C 03                        -> 000007E8 6C 03
- * define           000007E0 2C 02 F3xx 14 {addr4 len1}.. -> 000007E8 6C 02 F3xx
- * read             000007E0 22 F3xx [F3yy ...]           -> 000007E8 62 F3xx data [F3yy data ...]
- * tester present   000007E0 3E 00                        -> 000007E8 7E 00
- * stop             000007E0 10 01                        -> 000007E8 50 01
- * </pre>
+ * Requests: AA (ECU ID, as SSM), 10 03 / 10 01 (session), 2C 03 (clear),
+ * 2C 02 F3xx 14 {addr4 len1}.. (define), 22 F3xx.. (read), 3E 00 (tester present).
  */
 public final class SUBUDSProtocol implements ProtocolSUBUDS {
     public static final byte ECU_INIT_COMMAND = (byte) 0xAA;
@@ -227,7 +219,6 @@ public final class SUBUDSProtocol implements ProtocolSUBUDS {
         }
     }
 
-    /** The SSM init reply; the ECU ID matches the one the SSM protocol shows. */
     @Override
     public EcuInit parseEcuInitResponse(byte[] processedResponse) {
         checkValidEcuInitResponse(processedResponse);
