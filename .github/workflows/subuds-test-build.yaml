@@ -1,0 +1,49 @@
+name: SUBUDS test build
+
+# Builds the RomRaider standalone zips from this branch and attaches them, with the FA20DIT logger definition, to a
+# release when one is published. Push builds only check that it compiles.
+on:
+  push:
+    branches: [ subuds-test-build ]
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          architecture: x64
+      - name: Build and test
+        shell: bash
+        run: |
+          export JRE_DIR="$JAVA_HOME/jre"
+          ant rebuild standalone
+          ls -la build/dist/*/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RomRaider-SUBUDS
+          path: |
+            build/dist/*/*.zip
+            .github/subuds/FA20DIT_Logger.xml
+      - name: Publish pre-release
+        if: github.event_name == 'release'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          for f in build/dist/*/*.zip; do
+            b=$(basename "$f" .zip)
+            cp "$f" "RomRaider-SUBUDS-$TAG-${b##*-}.zip"
+          done
+          ls -la RomRaider-SUBUDS-*.zip
+          sed -e "s/@TAG@/$TAG/g" -e "s/@SHA@/${GITHUB_SHA}/g" .github/subuds/release-notes.md > notes.md
+          gh release upload "$TAG" RomRaider-SUBUDS-*.zip .github/subuds/FA20DIT_Logger.xml --clobber
+          gh release edit "$TAG" --prerelease --title "Test build $TAG (Subaru UDS logging)" --notes-file notes.md

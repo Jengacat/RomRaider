@@ -1,0 +1,3149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FA20DIT logger definition for RomRaider (LF75404S, LF75300H, LF78001H, LF79002P, LF79100P, LF9C100P, LF9C000C, LV9N100F, LV9N101C, LV9N000C and the ten same-code calibrations LF75300S/F/L, LF75301K, LV9N101F/I, LV9N100B, LF79100N, LF9C001K, LF9C001P, plus LF78103B and LF75200T).
+     SSM: service 0xA8 on this ECU takes table indices, not memory addresses (handlers 0x0B551E / 0x0C58BC / 0x0BE382); every index used here was checked in all twelve software builds.
+     OBD: standard mode 01 PIDs for RomRaider's OBD protocol (Settings > Logger Protocol); the PID set is the same in all twelve software builds. -->
+<logger version="FA20DIT-0.2">
+ <protocols>
+  <protocol id="SSM" baud="4800" databits="8" stopbits="1" parity="0" connect_timeout="2000" send_timeout="55">
+   <transports>
+    <transport id="iso15765" name="CAN bus" desc="SSM over ISO 15765 (CAN), 500 kbit/s">
+     <module id="ecu" address="0x000007E8" desc="Engine Control Unit" tester="0x000007E0" fastpoll="false"/>
+    </transport>
+   </transports>
+   <parameters>
+    <parameter id="J01" name="Engine Speed" desc="Engine Speed (read; 0x11EE38: FFF8CD54 x 25 &gt;&gt; 5 (u16) = rpm x 4)" target="1">
+     <address length="2">0x00000E</address>
+     <conversions>
+      <conversion units="rpm" expr="x/4" format="0" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="J02" name="Coolant Temperature" desc="Coolant Temperature (read; 0x11F250: FFF8CD65 (degC + 50) - 10, floored at 0)" target="1">
+     <address>0x000008</address>
+     <conversions>
+      <conversion units="F" expr="(x-40)*1.8+32" format="0" storagetype="uint8"/>
+      <conversion units="C" expr="x-40" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J03" name="Intake Air Temperature" desc="Intake Air Temperature (read; 0x11F098: FFF8CEE5 (the OBD IAT source, degC + 50) - 10, floored at 0)" target="1">
+     <address>0x000012</address>
+     <conversions>
+      <conversion units="F" expr="(x-40)*1.8+32" format="0" storagetype="uint8"/>
+      <conversion units="C" expr="x-40" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J04" name="Ignition Timing" desc="Ignition Timing (read; 0x11E728: final timing FFF8A744 + 128 (0.5 degree units))" target="1">
+     <address>0x000011</address>
+     <conversions>
+      <conversion units="degrees" expr="(x-128)/2" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J05" name="Mass Airflow" desc="Mass Airflow (read; 0x11EF60: FFF88A4A x 0x753 &gt;&gt; 12, the same conversion as OBD PID 0x10 (0.01 g/s))" target="1">
+     <address length="2">0x000013</address>
+     <conversions>
+      <conversion units="g/s" expr="x/100" format="0.00" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="J06" name="MAF Sensor Voltage" desc="MAF Sensor Voltage (inferred; 0x11F28C: FFF88A1A x 125 &gt;&gt; 15; volts if FFF88A1A = V x 13107)" target="1">
+     <address>0x00001D</address>
+     <conversions>
+      <conversion units="V" expr="x*0.02" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J07" name="Manifold Absolute Pressure" desc="Manifold Absolute Pressure (inferred; 0x11EEDC: FFF88A34 &gt;&gt; 8; kPa because index 0x24 is this minus barometric pressure + 128)" target="1">
+     <address>0x00000D</address>
+     <conversions>
+      <conversion units="psia" expr="x*0.1450377" format="0.00" storagetype="uint8"/>
+      <conversion units="kPa" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J08" name="Manifold Relative Pressure" desc="Manifold Relative Pressure (read; 0x11E7FC: (FFF88A34 &gt;&gt; 8) - (FFF88E1E &gt;&gt; 8) + 128, clipped to 0...255; FFF88E1E is the OBD barometric source)" target="1">
+     <address>0x000024</address>
+     <conversions>
+      <conversion units="psi" expr="(x-128)*0.1450377" format="0.00" storagetype="uint8"/>
+      <conversion units="kPa" expr="x-128" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J09" name="Barometric Pressure" desc="Barometric Pressure (read; 0x11E75C: FFF88668 (kPa x 256) &gt;&gt; 8)" target="1">
+     <address>0x000023</address>
+     <conversions>
+      <conversion units="psia" expr="x*0.1450377" format="0.00" storagetype="uint8"/>
+      <conversion units="kPa" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J10" name="Wastegate Duty" desc="Wastegate Duty (read; 0x11E910: FFF8B3B8 (WGDC, 25600 = 100 %) x 255/25600)" target="1">
+     <address>0x000030</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J11" name="Commanded Throttle" desc="Commanded Throttle (read; 0x11F218: FFF8AF84 x 255/25600; FFF8AF84 is the OBD PID 0x4C (commanded throttle actuator) source, written by 0x0C326C in the torque model)" target="1">
+     <address>0x000015</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J12" name="Battery Voltage" desc="Battery Voltage (inferred; 0x11F29C: FFF9DD61 x 125 &gt;&gt; 7; FFF9DD61 = V x 12.8 (inferred))" target="1">
+     <address>0x00001C</address>
+     <conversions>
+      <conversion units="V" expr="x*0.08" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J13" name="Vehicle Speed" desc="Vehicle Speed (inferred; 0x11F2B0: FFF99835 copied; the programming-session check 0x0AF014 refuses while FFF99835 &gt; cal 0x579AA, i.e. a vehicle-speed check (inferred))" target="1">
+     <address>0x000010</address>
+     <conversions>
+      <conversion units="km/h" expr="x" format="0" storagetype="uint8"/>
+      <conversion units="mph" expr="x*0.621371" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J14" name="Knock Learning (DAM)" desc="Knock Learning (DAM) (inferred; FFF811AE pointed to directly; DAM x 16 (inferred, see Knock Correction Advance))" target="1">
+     <address>0x0000F9</address>
+     <conversions>
+      <conversion units="DAM" expr="x/16" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J15" name="Throttle Position" desc="Throttle Position (read; 0x11E708: FFF8A346 (the OBD PID 0x11 source, 65535 = 100 %) x 125 &gt;&gt; 15 = % x 2.5)" target="1">
+     <address>0x000101</address>
+     <conversions>
+      <conversion units="%" expr="x*0.4" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J16" name="FFF8A348 (Throttle Scale)" desc="FFF8A348 (Throttle Scale) (inferred; 0x11E718: FFF8A348 x 125 &gt;&gt; 15, same scale as Throttle Position; likely the second throttle signal (inferred))" target="1">
+     <address>0x000100</address>
+     <conversions>
+      <conversion units="%" expr="x*0.4" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J17" name="FFF8A350 (Throttle Scale)" desc="FFF8A350 (Throttle Scale) (inferred; 0x11EF70: FFF8A350 x 125 &gt;&gt; 15; identity not decoded (pedal or throttle signal))" target="1">
+     <address>0x000103</address>
+     <conversions>
+      <conversion units="%" expr="x*0.4" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J18" name="FFF8A352 (Throttle Scale)" desc="FFF8A352 (Throttle Scale) (inferred; 0x11EF80: FFF8A352 x 125 &gt;&gt; 15; identity not decoded)" target="1">
+     <address>0x000102</address>
+     <conversions>
+      <conversion units="%" expr="x*0.4" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J19" name="Closed Loop Lambda (FFF8B2C2)" desc="Closed Loop Lambda (FFF8B2C2) (read; 0x11EDA4: (FFF8B2C2 &lt;&lt; 15) / cal 0x38278 (43194 = lambda 1.0) - 32768, &gt;&gt; 8, + 128; written by the closed-loop routines 0x0FBAFC/0x0FC0CC, role (measured or target) not decoded)" target="1">
+     <address>0x0000D1</address>
+     <conversions>
+      <conversion units="lambda" expr="x/128" format="0.000" storagetype="uint8"/>
+      <conversion units="AFR" expr="x/128*14.7" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J20" name="Closed Loop Target (FFF8B312)" desc="Closed Loop Target (FFF8B312) (read; 0x11ED68: ((FFF8B312 &gt;&gt; 1) - 0x5587) x 0x3BDD &gt;&gt; 18 + 64, clipped; FFF8B312 is the closed-loop target in lambda x 43194 units (0x0FF634); the byte covers only lambda 0.96...1.17)" target="1">
+     <address>0x0000D0</address>
+     <conversions>
+      <conversion units="lambda" expr="((x-64)*262144/15325+21895)*2/43194" format="0.000" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J21" name="FFF8B2D8 (Fuel Correction)" desc="FFF8B2D8 (Fuel Correction) (inferred; 0x11ED58: FFF8B2D8 &gt;&gt; 8; FFF8B2D8 = 0x8000 when not running (0x0FBF58), so 128 = no correction (inferred))" target="1">
+     <address>0x000009</address>
+     <conversions>
+      <conversion units="%" expr="(x-128)/1.28" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J22" name="Knock Raw (A791/A7A7)" desc="Knock Raw (A791/A7A7) (read; 0x11F1E4: (FFF8A791 x 19 + FFF8A7A7 (s8) x 19 + 0xD80) / 27; knock-module variables, meaning not decoded)" target="1">
+     <address>0x000028</address>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J23" name="FFF8A7A7 (Knock Module)" desc="FFF8A7A7 (Knock Module) (read; 0x11EF08: FFF8A7A7 (s8) x 45 &gt;&gt; 6 + 90)" target="1">
+     <address>0x000199</address>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J24" name="AVCS FFF8B8EA" desc="AVCS FFF8B8EA (read; 0x11EE88: FFF8B8EA x 0xD0E5 &gt;&gt; 19; AVCS module variable (read by the OCV driver 0x15969C))" target="1">
+     <address>0x00003E</address>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J25" name="AVCS FFF8B8E4" desc="AVCS FFF8B8E4 (read; 0x11EE68: FFF8B8E4 x 0xD0E5 &gt;&gt; 19; AVCS module variable)" target="1">
+     <address>0x00003F</address>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J26" name="AVCS FFF8B900" desc="AVCS FFF8B900 (read; 0x11E990: FFF8B900 x 0xD0E5 &gt;&gt; 19; AVCS module variable)" target="1">
+     <address>0x00011A</address>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J27" name="AVCS FFF8B8FA" desc="AVCS FFF8B8FA (read; 0x11E970: FFF8B8FA x 0xD0E5 &gt;&gt; 19; AVCS module variable)" target="1">
+     <address>0x00011B</address>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J28" name="Long-Term Fuel Trim (FFF811D9)" desc="Long-Term Fuel Trim (FFF811D9) (read; SSM byte = FFF811D9 &gt;&gt; 1 + 64 (0x11EC9C, read). FFF811D9 = learned cell + 0x80 (0x0FD3E4) is copied to FFF8A689 (0x0CECA8), and fuel is multiplied by (A689 + 128)/256 (0x0D15EC, read), so one count of 811D9 = 0.39 %; on the SSM byte, % = (x-128) x 100/128 (corrected 2026-10-30; it was shown double).)" target="1">
+     <address>0x00000A</address>
+     <conversions>
+      <conversion units="%" expr="(x-128)*100/128" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J29" name="Intake Cam Advance Bank 1 (FFF88DB0)" desc="Intake Cam Advance Bank 1 (FFF88DB0) (inferred; stock branch (cal 0x3CCC4 bit 0 = 1): learned rest FFF81582 - measured FFF88D8C, advance positive; cam edges later = larger (0x1D165A) (read, my research notes))" target="1">
+     <address>0x00003C</address>
+     <conversions>
+      <conversion units="degrees" expr="x-50" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J30" name="Intake Cam Advance Bank 2 (FFF88DB2)" desc="Intake Cam Advance Bank 2 (FFF88DB2) (inferred; stock branch (cal 0x3CCC4 bit 0 = 1): learned rest FFF81582 - measured FFF88D8C, advance positive; cam edges later = larger (0x1D165A) (read, my research notes))" target="1">
+     <address>0x00003D</address>
+     <conversions>
+      <conversion units="degrees" expr="x-50" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J31" name="Exhaust Cam Retard Bank 1 (FFF88DBC)" desc="Exhaust Cam Retard Bank 1 (FFF88DBC) (inferred; stock branch (cal 0x3CCC4 bit 0 = 1): measured FFF88DA0 - learned rest FFF8157E, retard positive; cam edges later = larger (0x1D165A) (read, my research notes))" target="1">
+     <address>0x000118</address>
+     <conversions>
+      <conversion units="degrees" expr="x-50" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J32" name="Exhaust Cam Retard Bank 2 (FFF88DBE)" desc="Exhaust Cam Retard Bank 2 (FFF88DBE) (inferred; stock branch (cal 0x3CCC4 bit 0 = 1): measured FFF88DA0 - learned rest FFF8157E, retard positive; cam edges later = larger (0x1D165A) (read, my research notes))" target="1">
+     <address>0x000119</address>
+     <conversions>
+      <conversion units="degrees" expr="x-50" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J33" name="Accelerator Pedal" desc="Accelerator Pedal (read; Index 0x029 points directly at FFF88A5E (2015/2016; FFF88DAE 2017, FFF88E3E 2018), the high byte of the u16 pedal value (65535 = 100 %) that feeds the Requested Torque maps (0x09E800 / 0x0BB588, read))" target="1">
+     <address>0x000029</address>
+     <conversions>
+      <conversion units="%" expr="x*100/256" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J34" name="ETC Motor Drive" desc="ETC Motor Drive (inferred; Shadow FFF8A93A from FFF8A3B4 (x - 128, read); FFF8A3B4 is the electronic throttle motor drive of the servo loop (inferred, Phase 13))" target="1">
+     <address>0x0000FA</address>
+     <conversions>
+      <conversion units="raw (signed)" expr="x-128" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J35" name="A/F Sensor Lambda" desc="A/F Sensor Lambda (read; 0x11F040: FFF88AF8 &gt;&gt; 6, capped at 255; FFF88AF8 = measured lambda x 8192 from the front A/F sensor (0x06C1A8, read), the same variable OBD PIDs 0x24/0x34 report. Reads up to lambda 1.99; AFR assumes 14.7 stoich)" target="1">
+     <address>0x000046</address>
+     <conversions>
+      <conversion units="lambda" expr="x/128" format="0.000" storagetype="uint8"/>
+      <conversion units="AFR" expr="x/128*14.7" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J36" name="Calculated Engine Load (OBD)" desc="Calculated Engine Load (OBD) (read; 0x11EDE4 copies FFF886A2, which is also the OBD PID 0x04 source (0x171AC4 -&gt; FFF8AB77, read); 255 = 100 %)" target="1">
+     <address>0x000007</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J37" name="Injector Pulse Width (Injector 1)" desc="Injector Pulse Width (Injector 1) (inferred; 0x11F1C0: FFF8CF3C x 0x3333 &gt;&gt; 20 (= /80), capped at 255; FFF8CF3C = injector 1 pulse u32 &gt;&gt; 2 (0x1E5436, read). The pulse unit of 0.8 us is inferred (as logging-patch L24), so 0.256 ms per count; it saturates at about 65 ms)" target="1">
+     <address>0x000020</address>
+     <conversions>
+      <conversion units="ms" expr="x*0.256" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J38" name="Radiator Fan Duty" desc="Radiator Fan Duty (read; 0x11EFE0: FFF8B278 x 25 &gt;&gt; 14; FFF8B278 = radiator fan duty, 65535 = 100 % (0x0F7A88, read))" target="1">
+     <address>0x00002F</address>
+     <conversions>
+      <conversion units="%" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J39" name="Purge Valve Duty" desc="Purge Valve Duty (read; 0x11E85C: FFF8A707 x 65 &gt;&gt; 6, the same conversion and source as OBD PID 0x2E, commanded evaporative purge (0x1715D0 -&gt; FFF8AB6A, read))" target="1">
+     <address>0x000032</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J40" name="Alternator Duty" desc="Alternator Duty (inferred; 0x11E88C: FFF8B718 x 0x7AE1 &gt;&gt; 19 (x 0.06); FFF8B718 = charging output command, 1667 = 100 % (read; alternator identity inferred))" target="1">
+     <address>0x00003A</address>
+     <conversions>
+      <conversion units="%" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J41" name="EGR Valve Position" desc="EGR Valve Position (inferred; 0x11E9B0: FFF88A1C &gt;&gt; 1, capped at 255; FFF88A1C is the EGR valve position feedback, compared with 2 x the EGR command FFF8A81B for OBD PID 0x2D (0x1715F0, read); the step unit is inferred)" target="1">
+     <address>0x000039</address>
+     <conversions>
+      <conversion units="steps" expr="x*2" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J42" name="Intake OCV Current (Cam 1)" desc="Intake OCV Current (Cam 1) (inferred; 0x11EEB8: FFF88D70 x 625 &gt;&gt; 19; FFF88D70 x 2.5/65536 is the measured OCV current of the intake cam 1 AVCS current feedback (0x15ED58, read); amps inferred)" target="1">
+     <address>0x000040</address>
+     <conversions>
+      <conversion units="A" expr="x*0.032" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J43" name="Intake OCV Current (Cam 2)" desc="Intake OCV Current (Cam 2) (inferred; 0x11EEA8: FFF88D72 x 625 &gt;&gt; 19; measured OCV current of intake cam 2 (0x15F158, read); amps inferred)" target="1">
+     <address>0x000041</address>
+     <conversions>
+      <conversion units="A" expr="x*0.032" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J44" name="Exhaust OCV Current (Cam 1)" desc="Exhaust OCV Current (Cam 1) (inferred; 0x11EB18: FFF88D84 x 625 &gt;&gt; 19; measured OCV current of exhaust cam 1 (0x163394, read); amps inferred)" target="1">
+     <address>0x00011C</address>
+     <conversions>
+      <conversion units="A" expr="x*0.032" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J45" name="Exhaust OCV Current (Cam 2)" desc="Exhaust OCV Current (Cam 2) (inferred; 0x11EB08: FFF88D86 x 625 &gt;&gt; 19; measured OCV current of exhaust cam 2 (0x163788, read); amps inferred)" target="1">
+     <address>0x00011D</address>
+     <conversions>
+      <conversion units="A" expr="x*0.032" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="J46" name="Brake Booster Pressure" desc="Brake Booster Pressure (inferred; 0x11EEE8: FFF88D10 &gt;&gt; 8; FFF88D10 = filtered analog pressure input in kPa x 256, compared with barometric pressure FFF88668 (0x06CF60, read); the brake-booster vacuum model uses baro minus this (identity inferred))" target="1">
+     <address>0x000104</address>
+     <conversions>
+      <conversion units="psia" expr="x*0.145038" format="0.0" storagetype="uint8"/>
+      <conversion units="kPa" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+   </parameters>
+   <dtcodes>
+    <dtcode id="D001" name="P0335 Crankshaft Position Sensor A Circuit" desc="P0335 (SSM pending byte index 0x08E / stored 0x0AE, bit 0; read)" tmpaddr="0x00008E" memaddr="0x0000AE" bit="0"/>
+    <dtcode id="D002" name="P0336 Crankshaft Position Sensor A Circuit Range/Performance" desc="P0336 (SSM pending byte index 0x08E / stored 0x0AE, bit 2; read)" tmpaddr="0x00008E" memaddr="0x0000AE" bit="2"/>
+    <dtcode id="D003" name="P0604 Internal Control Module RAM Error" desc="P0604 (SSM pending byte index 0x08E / stored 0x0AE, bit 6; read)" tmpaddr="0x00008E" memaddr="0x0000AE" bit="6"/>
+    <dtcode id="D004" name="P0102 Mass Air Flow Circuit Low" desc="P0102 (SSM pending byte index 0x08F / stored 0x0AF, bit 0; read)" tmpaddr="0x00008F" memaddr="0x0000AF" bit="0"/>
+    <dtcode id="D005" name="P0103 Mass Air Flow Circuit High" desc="P0103 (SSM pending byte index 0x08F / stored 0x0AF, bit 1; read)" tmpaddr="0x00008F" memaddr="0x0000AF" bit="1"/>
+    <dtcode id="D006" name="P0500 Vehicle Speed Sensor A" desc="P0500 (SSM pending byte index 0x08F / stored 0x0AF, bit 4; read)" tmpaddr="0x00008F" memaddr="0x0000AF" bit="4"/>
+    <dtcode id="D007" name="P0332 Knock Sensor 2 Circuit Low (Bank 2)" desc="P0332 (SSM pending byte index 0x08F / stored 0x0AF, bit 6; read)" tmpaddr="0x00008F" memaddr="0x0000AF" bit="6"/>
+    <dtcode id="D008" name="P0333 Knock Sensor 2 Circuit High (Bank 2)" desc="P0333 (SSM pending byte index 0x08F / stored 0x0AF, bit 7; read)" tmpaddr="0x00008F" memaddr="0x0000AF" bit="7"/>
+    <dtcode id="D009" name="P0327 Knock Sensor 1 Circuit Low (Bank 1)" desc="P0327 (SSM pending byte index 0x090 / stored 0x0B0, bit 2; read)" tmpaddr="0x000090" memaddr="0x0000B0" bit="2"/>
+    <dtcode id="D010" name="P0328 Knock Sensor 1 Circuit High (Bank 1)" desc="P0328 (SSM pending byte index 0x090 / stored 0x0B0, bit 3; read)" tmpaddr="0x000090" memaddr="0x0000B0" bit="3"/>
+    <dtcode id="D011" name="P0122 Throttle Position Sensor A Circuit Low" desc="P0122 (SSM pending byte index 0x090 / stored 0x0B0, bit 4; read)" tmpaddr="0x000090" memaddr="0x0000B0" bit="4"/>
+    <dtcode id="D012" name="P0123 Throttle Position Sensor A Circuit High" desc="P0123 (SSM pending byte index 0x090 / stored 0x0B0, bit 5; read)" tmpaddr="0x000090" memaddr="0x0000B0" bit="5"/>
+    <dtcode id="D013" name="P0117 Engine Coolant Temperature Circuit Low" desc="P0117 (SSM pending byte index 0x091 / stored 0x0B1, bit 0; read)" tmpaddr="0x000091" memaddr="0x0000B1" bit="0"/>
+    <dtcode id="D014" name="P0118 Engine Coolant Temperature Circuit High" desc="P0118 (SSM pending byte index 0x091 / stored 0x0B1, bit 1; read)" tmpaddr="0x000091" memaddr="0x0000B1" bit="1"/>
+    <dtcode id="D015" name="P0125 Insufficient Coolant Temperature for Closed Loop Fuel Control" desc="P0125 (SSM pending byte index 0x091 / stored 0x0B1, bit 3; read)" tmpaddr="0x000091" memaddr="0x0000B1" bit="3"/>
+    <dtcode id="D016" name="P0462 Fuel Level Sensor A Circuit Low" desc="P0462 (SSM pending byte index 0x091 / stored 0x0B1, bit 4; read)" tmpaddr="0x000091" memaddr="0x0000B1" bit="4"/>
+    <dtcode id="D017" name="P0463 Fuel Level Sensor A Circuit High" desc="P0463 (SSM pending byte index 0x091 / stored 0x0B1, bit 5; read)" tmpaddr="0x000091" memaddr="0x0000B1" bit="5"/>
+    <dtcode id="D018" name="P0461 Fuel Level Sensor A Circuit Range/Performance" desc="P0461 (SSM pending byte index 0x091 / stored 0x0B1, bit 6; read)" tmpaddr="0x000091" memaddr="0x0000B1" bit="6"/>
+    <dtcode id="D019" name="P0851 Park/Neutral Switch Input Circuit Low" desc="P0851 (SSM pending byte index 0x094 / stored 0x0B4, bit 3; read)" tmpaddr="0x000094" memaddr="0x0000B4" bit="3"/>
+    <dtcode id="D020" name="P0852 Park/Neutral Switch Input Circuit High" desc="P0852 (SSM pending byte index 0x094 / stored 0x0B4, bit 7; read)" tmpaddr="0x000094" memaddr="0x0000B4" bit="7"/>
+    <dtcode id="D021" name="P1492" desc="P1492 (SSM pending byte index 0x096 / stored 0x0B6, bit 0; read)" tmpaddr="0x000096" memaddr="0x0000B6" bit="0"/>
+    <dtcode id="D022" name="P1493" desc="P1493 (SSM pending byte index 0x096 / stored 0x0B6, bit 1; read)" tmpaddr="0x000096" memaddr="0x0000B6" bit="1"/>
+    <dtcode id="D023" name="P1494" desc="P1494 (SSM pending byte index 0x096 / stored 0x0B6, bit 2; read)" tmpaddr="0x000096" memaddr="0x0000B6" bit="2"/>
+    <dtcode id="D024" name="P1495" desc="P1495 (SSM pending byte index 0x096 / stored 0x0B6, bit 3; read)" tmpaddr="0x000096" memaddr="0x0000B6" bit="3"/>
+    <dtcode id="D025" name="P1496" desc="P1496 (SSM pending byte index 0x096 / stored 0x0B6, bit 4; read)" tmpaddr="0x000096" memaddr="0x0000B6" bit="4"/>
+    <dtcode id="D026" name="P1497" desc="P1497 (SSM pending byte index 0x096 / stored 0x0B6, bit 5; read)" tmpaddr="0x000096" memaddr="0x0000B6" bit="5"/>
+    <dtcode id="D027" name="P1498" desc="P1498 (SSM pending byte index 0x096 / stored 0x0B6, bit 6; read)" tmpaddr="0x000096" memaddr="0x0000B6" bit="6"/>
+    <dtcode id="D028" name="P1499" desc="P1499 (SSM pending byte index 0x096 / stored 0x0B6, bit 7; read)" tmpaddr="0x000096" memaddr="0x0000B6" bit="7"/>
+    <dtcode id="D029" name="P0506 Idle Control System RPM Lower Than Expected" desc="P0506 (SSM pending byte index 0x098 / stored 0x0B8, bit 3; read)" tmpaddr="0x000098" memaddr="0x0000B8" bit="3"/>
+    <dtcode id="D030" name="P0507 Idle Control System RPM Higher Than Expected" desc="P0507 (SSM pending byte index 0x098 / stored 0x0B8, bit 4; read)" tmpaddr="0x000098" memaddr="0x0000B8" bit="4"/>
+    <dtcode id="D031" name="P0011 Intake Camshaft Timing Over-Advanced or System Performance (Bank 1)" desc="P0011 (SSM pending byte index 0x09A / stored 0x0BA, bit 2; read)" tmpaddr="0x00009A" memaddr="0x0000BA" bit="2"/>
+    <dtcode id="D032" name="P0021 Intake Camshaft Timing Over-Advanced or System Performance (Bank 2)" desc="P0021 (SSM pending byte index 0x09A / stored 0x0BA, bit 3; read)" tmpaddr="0x00009A" memaddr="0x0000BA" bit="3"/>
+    <dtcode id="D033" name="P0458 Evaporative Emission System Purge Control Valve Circuit Low" desc="P0458 (SSM pending byte index 0x09A / stored 0x0BA, bit 6; read)" tmpaddr="0x00009A" memaddr="0x0000BA" bit="6"/>
+    <dtcode id="D034" name="P0459 Evaporative Emission System Purge Control Valve Circuit High" desc="P0459 (SSM pending byte index 0x09A / stored 0x0BA, bit 7; read)" tmpaddr="0x00009A" memaddr="0x0000BA" bit="7"/>
+    <dtcode id="D035" name="P0141 O2 Sensor Heater Circuit (Bank 1 Sensor 2)" desc="P0141 (SSM pending byte index 0x09E / stored 0x0BE, bit 5; read)" tmpaddr="0x00009E" memaddr="0x0000BE" bit="5"/>
+    <dtcode id="D036" name="P0133 O2 Sensor Circuit Slow Response (Bank 1 Sensor 1)" desc="P0133 (SSM pending byte index 0x09F / stored 0x0BF, bit 0; read)" tmpaddr="0x00009F" memaddr="0x0000BF" bit="0"/>
+    <dtcode id="D037" name="P0420 Catalyst System Efficiency Below Threshold (Bank 1)" desc="P0420 (SSM pending byte index 0x0A0 / stored 0x0C0, bit 0; read)" tmpaddr="0x0000A0" memaddr="0x0000C0" bit="0"/>
+    <dtcode id="D038" name="P0456 Evaporative Emission System Leak Detected (Very Small Leak)" desc="P0456 (SSM pending byte index 0x0A0 / stored 0x0C0, bit 3; read)" tmpaddr="0x0000A0" memaddr="0x0000C0" bit="3"/>
+    <dtcode id="D039" name="P0400 Exhaust Gas Recirculation Flow" desc="P0400 (SSM pending byte index 0x0A0 / stored 0x0C0, bit 4; read)" tmpaddr="0x0000A0" memaddr="0x0000C0" bit="4"/>
+    <dtcode id="D040" name="P0171 System Too Lean (Bank 1)" desc="P0171 (SSM pending byte index 0x0A0 / stored 0x0C0, bit 6; read)" tmpaddr="0x0000A0" memaddr="0x0000C0" bit="6"/>
+    <dtcode id="D041" name="P0172 System Too Rich (Bank 1)" desc="P0172 (SSM pending byte index 0x0A0 / stored 0x0C0, bit 7; read)" tmpaddr="0x0000A0" memaddr="0x0000C0" bit="7"/>
+    <dtcode id="D042" name="P0301 Cylinder 1 Misfire Detected" desc="P0301 (SSM pending byte index 0x0A1 / stored 0x0C1, bit 0; read)" tmpaddr="0x0000A1" memaddr="0x0000C1" bit="0"/>
+    <dtcode id="D043" name="P0302 Cylinder 2 Misfire Detected" desc="P0302 (SSM pending byte index 0x0A1 / stored 0x0C1, bit 1; read)" tmpaddr="0x0000A1" memaddr="0x0000C1" bit="1"/>
+    <dtcode id="D044" name="P0303 Cylinder 3 Misfire Detected" desc="P0303 (SSM pending byte index 0x0A1 / stored 0x0C1, bit 2; read)" tmpaddr="0x0000A1" memaddr="0x0000C1" bit="2"/>
+    <dtcode id="D045" name="P0304 Cylinder 4 Misfire Detected" desc="P0304 (SSM pending byte index 0x0A1 / stored 0x0C1, bit 3; read)" tmpaddr="0x0000A1" memaddr="0x0000C1" bit="3"/>
+    <dtcode id="D046" name="P0137 O2 Sensor Circuit Low Voltage (Bank 1 Sensor 2)" desc="P0137 (SSM pending byte index 0x0A3 / stored 0x0C3, bit 0; read)" tmpaddr="0x0000A3" memaddr="0x0000C3" bit="0"/>
+    <dtcode id="D047" name="P0131 O2 Sensor Circuit Low Voltage (Bank 1 Sensor 1)" desc="P0131 (SSM pending byte index 0x0A3 / stored 0x0C3, bit 2; read)" tmpaddr="0x0000A3" memaddr="0x0000C3" bit="2"/>
+    <dtcode id="D048" name="P0132 O2 Sensor Circuit High Voltage (Bank 1 Sensor 1)" desc="P0132 (SSM pending byte index 0x0A3 / stored 0x0C3, bit 4; read)" tmpaddr="0x0000A3" memaddr="0x0000C3" bit="4"/>
+    <dtcode id="D049" name="P0138 O2 Sensor Circuit High Voltage (Bank 1 Sensor 2)" desc="P0138 (SSM pending byte index 0x0A3 / stored 0x0C3, bit 6; read)" tmpaddr="0x0000A3" memaddr="0x0000C3" bit="6"/>
+    <dtcode id="D050" name="P0112 Intake Air Temperature Sensor 1 Circuit Low" desc="P0112 (SSM pending byte index 0x0A4 / stored 0x0C4, bit 0; read)" tmpaddr="0x0000A4" memaddr="0x0000C4" bit="0"/>
+    <dtcode id="D051" name="P0113 Intake Air Temperature Sensor 1 Circuit High" desc="P0113 (SSM pending byte index 0x0A4 / stored 0x0C4, bit 1; read)" tmpaddr="0x0000A4" memaddr="0x0000C4" bit="1"/>
+    <dtcode id="D052" name="P0111 Intake Air Temperature Sensor 1 Circuit Range/Performance" desc="P0111 (SSM pending byte index 0x0A4 / stored 0x0C4, bit 2; read)" tmpaddr="0x0000A4" memaddr="0x0000C4" bit="2"/>
+    <dtcode id="D053" name="P0038 HO2S Heater Control Circuit High (Bank 1 Sensor 2)" desc="P0038 (SSM pending byte index 0x0A4 / stored 0x0C4, bit 4; read)" tmpaddr="0x0000A4" memaddr="0x0000C4" bit="4"/>
+    <dtcode id="D054" name="P0032 HO2S Heater Control Circuit High (Bank 1 Sensor 1)" desc="P0032 (SSM pending byte index 0x0A4 / stored 0x0C4, bit 5; read)" tmpaddr="0x0000A4" memaddr="0x0000C4" bit="5"/>
+    <dtcode id="D055" name="P0037 HO2S Heater Control Circuit Low (Bank 1 Sensor 2)" desc="P0037 (SSM pending byte index 0x0A4 / stored 0x0C4, bit 6; read)" tmpaddr="0x0000A4" memaddr="0x0000C4" bit="6"/>
+    <dtcode id="D056" name="P0031 HO2S Heater Control Circuit Low (Bank 1 Sensor 1)" desc="P0031 (SSM pending byte index 0x0A4 / stored 0x0C4, bit 7; read)" tmpaddr="0x0000A4" memaddr="0x0000C4" bit="7"/>
+    <dtcode id="D057" name="P0107 Manifold Absolute Pressure Circuit Low" desc="P0107 (SSM pending byte index 0x0A5 / stored 0x0C5, bit 4; read)" tmpaddr="0x0000A5" memaddr="0x0000C5" bit="4"/>
+    <dtcode id="D058" name="P0108 Manifold Absolute Pressure Circuit High" desc="P0108 (SSM pending byte index 0x0A5 / stored 0x0C5, bit 5; read)" tmpaddr="0x0000A5" memaddr="0x0000C5" bit="5"/>
+    <dtcode id="D059" name="P0128 Coolant Thermostat (Below Regulating Temperature)" desc="P0128 (SSM pending byte index 0x0A8 / stored 0x0C8, bit 0; read)" tmpaddr="0x0000A8" memaddr="0x0000C8" bit="0"/>
+    <dtcode id="D060" name="P0562 System Voltage Low" desc="P0562 (SSM pending byte index 0x0A9 / stored 0x0C9, bit 6; read)" tmpaddr="0x0000A9" memaddr="0x0000C9" bit="6"/>
+    <dtcode id="D061" name="P0563 System Voltage High" desc="P0563 (SSM pending byte index 0x0A9 / stored 0x0C9, bit 7; read)" tmpaddr="0x0000A9" memaddr="0x0000C9" bit="7"/>
+    <dtcode id="D062" name="P0245 Turbocharger Wastegate Solenoid A Low" desc="P0245 (SSM pending byte index 0x0AA / stored 0x0CA, bit 0; read)" tmpaddr="0x0000AA" memaddr="0x0000CA" bit="0"/>
+    <dtcode id="D063" name="P0246 Turbocharger Wastegate Solenoid A High" desc="P0246 (SSM pending byte index 0x0AA / stored 0x0CA, bit 1; read)" tmpaddr="0x0000AA" memaddr="0x0000CA" bit="1"/>
+    <dtcode id="D064" name="P0244 Turbocharger Wastegate Solenoid A Range/Performance" desc="P0244 (SSM pending byte index 0x0AA / stored 0x0CA, bit 3; read)" tmpaddr="0x0000AA" memaddr="0x0000CA" bit="3"/>
+    <dtcode id="D065" name="P0230 Fuel Pump Primary Circuit" desc="P0230 (SSM pending byte index 0x126 / stored 0x12E, bit 1; read)" tmpaddr="0x000126" memaddr="0x00012E" bit="1"/>
+    <dtcode id="D066" name="P0068 MAP/MAF - Throttle Position Correlation" desc="P0068 (SSM pending byte index 0x126 / stored 0x12E, bit 3; read)" tmpaddr="0x000126" memaddr="0x00012E" bit="3"/>
+    <dtcode id="D067" name="P0101 Mass Air Flow Circuit Range/Performance" desc="P0101 (SSM pending byte index 0x126 / stored 0x12E, bit 7; read)" tmpaddr="0x000126" memaddr="0x00012E" bit="7"/>
+    <dtcode id="D068" name="P0134 O2 Sensor Circuit No Activity Detected (Bank 1 Sensor 1)" desc="P0134 (SSM pending byte index 0x127 / stored 0x12F, bit 1; read)" tmpaddr="0x000127" memaddr="0x00012F" bit="1"/>
+    <dtcode id="D069" name="P0030 HO2S Heater Control Circuit (Bank 1 Sensor 1)" desc="P0030 (SSM pending byte index 0x127 / stored 0x12F, bit 5; read)" tmpaddr="0x000127" memaddr="0x00012F" bit="5"/>
+    <dtcode id="D070" name="P2109 Throttle/Pedal Position Sensor A Minimum Stop Performance" desc="P2109 (SSM pending byte index 0x12A / stored 0x132, bit 0; read)" tmpaddr="0x00012A" memaddr="0x000132" bit="0"/>
+    <dtcode id="D071" name="P0222 Throttle Position Sensor B Circuit Low" desc="P0222 (SSM pending byte index 0x150 / stored 0x155, bit 0; read)" tmpaddr="0x000150" memaddr="0x000155" bit="0"/>
+    <dtcode id="D072" name="P0223 Throttle Position Sensor B Circuit High" desc="P0223 (SSM pending byte index 0x150 / stored 0x155, bit 1; read)" tmpaddr="0x000150" memaddr="0x000155" bit="1"/>
+    <dtcode id="D073" name="P1160" desc="P1160 (SSM pending byte index 0x150 / stored 0x155, bit 2; read)" tmpaddr="0x000150" memaddr="0x000155" bit="2"/>
+    <dtcode id="D074" name="P2102 Throttle Actuator Control Motor Circuit Low" desc="P2102 (SSM pending byte index 0x150 / stored 0x155, bit 3; read)" tmpaddr="0x000150" memaddr="0x000155" bit="3"/>
+    <dtcode id="D075" name="P2103 Throttle Actuator Control Motor Circuit High" desc="P2103 (SSM pending byte index 0x150 / stored 0x155, bit 4; read)" tmpaddr="0x000150" memaddr="0x000155" bit="4"/>
+    <dtcode id="D076" name="P2101 Throttle Actuator Control Motor Circuit Range/Performance" desc="P2101 (SSM pending byte index 0x150 / stored 0x155, bit 5; read)" tmpaddr="0x000150" memaddr="0x000155" bit="5"/>
+    <dtcode id="D077" name="P2096 Post Catalyst Fuel Trim System Too Lean (Bank 1)" desc="P2096 (SSM pending byte index 0x150 / stored 0x155, bit 6; read)" tmpaddr="0x000150" memaddr="0x000155" bit="6"/>
+    <dtcode id="D078" name="P2138 Throttle/Pedal Position Sensor/Switch D/E Voltage Correlation" desc="P2138 (SSM pending byte index 0x151 / stored 0x156, bit 1; read)" tmpaddr="0x000151" memaddr="0x000156" bit="1"/>
+    <dtcode id="D079" name="P2127 Throttle/Pedal Position Sensor/Switch E Circuit Low" desc="P2127 (SSM pending byte index 0x151 / stored 0x156, bit 2; read)" tmpaddr="0x000151" memaddr="0x000156" bit="2"/>
+    <dtcode id="D080" name="P2128 Throttle/Pedal Position Sensor/Switch E Circuit High" desc="P2128 (SSM pending byte index 0x151 / stored 0x156, bit 3; read)" tmpaddr="0x000151" memaddr="0x000156" bit="3"/>
+    <dtcode id="D081" name="P2122 Throttle/Pedal Position Sensor/Switch D Circuit Low" desc="P2122 (SSM pending byte index 0x151 / stored 0x156, bit 4; read)" tmpaddr="0x000151" memaddr="0x000156" bit="4"/>
+    <dtcode id="D082" name="P2123 Throttle/Pedal Position Sensor/Switch D Circuit High" desc="P2123 (SSM pending byte index 0x151 / stored 0x156, bit 5; read)" tmpaddr="0x000151" memaddr="0x000156" bit="5"/>
+    <dtcode id="D083" name="P2135 Throttle/Pedal Position Sensor/Switch A/B Voltage Correlation" desc="P2135 (SSM pending byte index 0x151 / stored 0x156, bit 6; read)" tmpaddr="0x000151" memaddr="0x000156" bit="6"/>
+    <dtcode id="D084" name="P2097 Post Catalyst Fuel Trim System Too Rich (Bank 1)" desc="P2097 (SSM pending byte index 0x151 / stored 0x156, bit 7; read)" tmpaddr="0x000151" memaddr="0x000156" bit="7"/>
+    <dtcode id="D085" name="P0390 Camshaft Position Sensor B Circuit (Bank 2)" desc="P0390 (SSM pending byte index 0x152 / stored 0x157, bit 1; read)" tmpaddr="0x000152" memaddr="0x000157" bit="1"/>
+    <dtcode id="D086" name="P0365 Camshaft Position Sensor B Circuit (Bank 1)" desc="P0365 (SSM pending byte index 0x152 / stored 0x157, bit 2; read)" tmpaddr="0x000152" memaddr="0x000157" bit="2"/>
+    <dtcode id="D087" name="P0345 Camshaft Position Sensor A Circuit (Bank 2)" desc="P0345 (SSM pending byte index 0x152 / stored 0x157, bit 3; read)" tmpaddr="0x000152" memaddr="0x000157" bit="3"/>
+    <dtcode id="D088" name="P0340 Camshaft Position Sensor A Circuit (Bank 1)" desc="P0340 (SSM pending byte index 0x152 / stored 0x157, bit 4; read)" tmpaddr="0x000152" memaddr="0x000157" bit="4"/>
+    <dtcode id="D089" name="P0605 Internal Control Module ROM Error" desc="P0605 (SSM pending byte index 0x152 / stored 0x157, bit 5; read)" tmpaddr="0x000152" memaddr="0x000157" bit="5"/>
+    <dtcode id="D090" name="P2095 B Camshaft Position Actuator Control Circuit High (Bank 2)" desc="P2095 (SSM pending byte index 0x153 / stored 0x158, bit 0; read)" tmpaddr="0x000153" memaddr="0x000158" bit="0"/>
+    <dtcode id="D091" name="P2094 B Camshaft Position Actuator Control Circuit Low (Bank 2)" desc="P2094 (SSM pending byte index 0x153 / stored 0x158, bit 1; read)" tmpaddr="0x000153" memaddr="0x000158" bit="1"/>
+    <dtcode id="D092" name="P2091 B Camshaft Position Actuator Control Circuit High (Bank 1)" desc="P2091 (SSM pending byte index 0x153 / stored 0x158, bit 2; read)" tmpaddr="0x000153" memaddr="0x000158" bit="2"/>
+    <dtcode id="D093" name="P2090 B Camshaft Position Actuator Control Circuit Low (Bank 1)" desc="P2090 (SSM pending byte index 0x153 / stored 0x158, bit 3; read)" tmpaddr="0x000153" memaddr="0x000158" bit="3"/>
+    <dtcode id="D094" name="P2093 A Camshaft Position Actuator Control Circuit High (Bank 2)" desc="P2093 (SSM pending byte index 0x153 / stored 0x158, bit 4; read)" tmpaddr="0x000153" memaddr="0x000158" bit="4"/>
+    <dtcode id="D095" name="P2092 A Camshaft Position Actuator Control Circuit Low (Bank 2)" desc="P2092 (SSM pending byte index 0x153 / stored 0x158, bit 5; read)" tmpaddr="0x000153" memaddr="0x000158" bit="5"/>
+    <dtcode id="D096" name="P2089 A Camshaft Position Actuator Control Circuit High (Bank 1)" desc="P2089 (SSM pending byte index 0x153 / stored 0x158, bit 6; read)" tmpaddr="0x000153" memaddr="0x000158" bit="6"/>
+    <dtcode id="D097" name="P2088 A Camshaft Position Actuator Control Circuit Low (Bank 1)" desc="P2088 (SSM pending byte index 0x153 / stored 0x158, bit 7; read)" tmpaddr="0x000153" memaddr="0x000158" bit="7"/>
+    <dtcode id="D098" name="P0197 Engine Oil Temperature Sensor Low" desc="P0197 (SSM pending byte index 0x154 / stored 0x159, bit 0; read)" tmpaddr="0x000154" memaddr="0x000159" bit="0"/>
+    <dtcode id="D099" name="P0700 Transmission Control System (MIL Request)" desc="P0700 (SSM pending byte index 0x154 / stored 0x159, bit 7; read)" tmpaddr="0x000154" memaddr="0x000159" bit="7"/>
+    <dtcode id="D100" name="P0196 Engine Oil Temperature Sensor Range/Performance" desc="P0196 (SSM pending byte index 0x160 / stored 0x165, bit 6; read)" tmpaddr="0x000160" memaddr="0x000165" bit="6"/>
+    <dtcode id="D101" name="P0198 Engine Oil Temperature Sensor High" desc="P0198 (SSM pending byte index 0x160 / stored 0x165, bit 7; read)" tmpaddr="0x000160" memaddr="0x000165" bit="7"/>
+    <dtcode id="D102" name="P2004 Intake Manifold Runner Control Stuck Open (Bank 1)" desc="P2004 (SSM pending byte index 0x163 / stored 0x168, bit 0; read)" tmpaddr="0x000163" memaddr="0x000168" bit="0"/>
+    <dtcode id="D103" name="P2006 Intake Manifold Runner Control Stuck Closed (Bank 1)" desc="P2006 (SSM pending byte index 0x163 / stored 0x168, bit 1; read)" tmpaddr="0x000163" memaddr="0x000168" bit="1"/>
+    <dtcode id="D104" name="P2005 Intake Manifold Runner Control Stuck Open (Bank 2)" desc="P2005 (SSM pending byte index 0x163 / stored 0x168, bit 2; read)" tmpaddr="0x000163" memaddr="0x000168" bit="2"/>
+    <dtcode id="D105" name="P2007 Intake Manifold Runner Control Stuck Closed (Bank 2)" desc="P2007 (SSM pending byte index 0x163 / stored 0x168, bit 3; read)" tmpaddr="0x000163" memaddr="0x000168" bit="3"/>
+    <dtcode id="D106" name="P2227 Barometric Pressure Sensor A Circuit Range/Performance" desc="P2227 (SSM pending byte index 0x163 / stored 0x168, bit 4; read)" tmpaddr="0x000163" memaddr="0x000168" bit="4"/>
+    <dtcode id="D107" name="P2229 Barometric Pressure Sensor A Circuit High" desc="P2229 (SSM pending byte index 0x163 / stored 0x168, bit 6; read)" tmpaddr="0x000163" memaddr="0x000168" bit="6"/>
+    <dtcode id="D108" name="P2228 Barometric Pressure Sensor A Circuit Low" desc="P2228 (SSM pending byte index 0x163 / stored 0x168, bit 7; read)" tmpaddr="0x000163" memaddr="0x000168" bit="7"/>
+    <dtcode id="D109" name="P2016 Intake Manifold Runner Position Sensor/Switch Circuit Low (Bank 1)" desc="P2016 (SSM pending byte index 0x164 / stored 0x169, bit 0; read)" tmpaddr="0x000164" memaddr="0x000169" bit="0"/>
+    <dtcode id="D110" name="P2017 Intake Manifold Runner Position Sensor/Switch Circuit High (Bank 1)" desc="P2017 (SSM pending byte index 0x164 / stored 0x169, bit 1; read)" tmpaddr="0x000164" memaddr="0x000169" bit="1"/>
+    <dtcode id="D111" name="P2021 Intake Manifold Runner Position Sensor/Switch Circuit Low (Bank 2)" desc="P2021 (SSM pending byte index 0x164 / stored 0x169, bit 2; read)" tmpaddr="0x000164" memaddr="0x000169" bit="2"/>
+    <dtcode id="D112" name="P2022 Intake Manifold Runner Position Sensor/Switch Circuit High (Bank 2)" desc="P2022 (SSM pending byte index 0x164 / stored 0x169, bit 3; read)" tmpaddr="0x000164" memaddr="0x000169" bit="3"/>
+    <dtcode id="D113" name="P2009 Intake Manifold Runner Control Circuit Low (Bank 1)" desc="P2009 (SSM pending byte index 0x164 / stored 0x169, bit 4; read)" tmpaddr="0x000164" memaddr="0x000169" bit="4"/>
+    <dtcode id="D114" name="P2012 Intake Manifold Runner Control Circuit Low (Bank 2)" desc="P2012 (SSM pending byte index 0x164 / stored 0x169, bit 5; read)" tmpaddr="0x000164" memaddr="0x000169" bit="5"/>
+    <dtcode id="D115" name="P0018 Crankshaft/Camshaft Position Correlation (Bank 2 Sensor A)" desc="P0018 (SSM pending byte index 0x177 / stored 0x17E, bit 6; read)" tmpaddr="0x000177" memaddr="0x00017E" bit="6"/>
+    <dtcode id="D116" name="P0016 Crankshaft/Camshaft Position Correlation (Bank 1 Sensor A)" desc="P0016 (SSM pending byte index 0x177 / stored 0x17E, bit 7; read)" tmpaddr="0x000177" memaddr="0x00017E" bit="7"/>
+    <dtcode id="D117" name="P0024 Exhaust Camshaft Timing Over-Advanced or System Performance (Bank 2)" desc="P0024 (SSM pending byte index 0x179 / stored 0x180, bit 0; read)" tmpaddr="0x000179" memaddr="0x000180" bit="0"/>
+    <dtcode id="D118" name="P0014 Exhaust Camshaft Timing Over-Advanced or System Performance (Bank 1)" desc="P0014 (SSM pending byte index 0x179 / stored 0x180, bit 1; read)" tmpaddr="0x000179" memaddr="0x000180" bit="1"/>
+    <dtcode id="D119" name="P04F0 Evaporative Emission System High Pressure Purge Line Performance" desc="P04F0 (SSM pending byte index 0x179 / stored 0x180, bit 5; read)" tmpaddr="0x000179" memaddr="0x000180" bit="5"/>
+    <dtcode id="D120" name="P1458" desc="P1458 (SSM pending byte index 0x179 / stored 0x180, bit 6; read)" tmpaddr="0x000179" memaddr="0x000180" bit="6"/>
+    <dtcode id="D121" name="P1459" desc="P1459 (SSM pending byte index 0x179 / stored 0x180, bit 7; read)" tmpaddr="0x000179" memaddr="0x000180" bit="7"/>
+    <dtcode id="D122" name="P050E Cold Start Engine Exhaust Temperature Too Low" desc="P050E (SSM pending byte index 0x17A / stored 0x181, bit 2; read)" tmpaddr="0x00017A" memaddr="0x000181" bit="2"/>
+    <dtcode id="D123" name="P0019 Crankshaft/Camshaft Position Correlation (Bank 2 Sensor B)" desc="P0019 (SSM pending byte index 0x17A / stored 0x181, bit 6; read)" tmpaddr="0x00017A" memaddr="0x000181" bit="6"/>
+    <dtcode id="D124" name="P0017 Crankshaft/Camshaft Position Correlation (Bank 1 Sensor B)" desc="P0017 (SSM pending byte index 0x17A / stored 0x181, bit 7; read)" tmpaddr="0x00017A" memaddr="0x000181" bit="7"/>
+    <dtcode id="D125" name="U0422 Invalid Data Received from Body Control Module" desc="U0422 (SSM pending byte index 0x264 / stored 0x269, bit 0; read)" tmpaddr="0x000264" memaddr="0x000269" bit="0"/>
+    <dtcode id="D126" name="U0140 Lost Communication with Body Control Module" desc="U0140 (SSM pending byte index 0x264 / stored 0x269, bit 1; read)" tmpaddr="0x000264" memaddr="0x000269" bit="1"/>
+    <dtcode id="D127" name="U0402 Invalid Data Received from TCM" desc="U0402 (SSM pending byte index 0x264 / stored 0x269, bit 2; read)" tmpaddr="0x000264" memaddr="0x000269" bit="2"/>
+    <dtcode id="D128" name="U0101 Lost Communication with TCM" desc="U0101 (SSM pending byte index 0x264 / stored 0x269, bit 3; read)" tmpaddr="0x000264" memaddr="0x000269" bit="3"/>
+    <dtcode id="D129" name="U0416 Invalid Data Received from Vehicle Dynamics Control Module" desc="U0416 (SSM pending byte index 0x264 / stored 0x269, bit 4; read)" tmpaddr="0x000264" memaddr="0x000269" bit="4"/>
+    <dtcode id="D130" name="U0122 Lost Communication with Vehicle Dynamics Control Module" desc="U0122 (SSM pending byte index 0x264 / stored 0x269, bit 5; read)" tmpaddr="0x000264" memaddr="0x000269" bit="5"/>
+    <dtcode id="D131" name="U0073 Control Module Communication Bus Off" desc="U0073 (SSM pending byte index 0x264 / stored 0x269, bit 6; read)" tmpaddr="0x000264" memaddr="0x000269" bit="6"/>
+    <dtcode id="D132" name="P050B Cold Start Ignition Timing Performance" desc="P050B (SSM pending byte index 0x267 / stored 0x26C, bit 0; read)" tmpaddr="0x000267" memaddr="0x00026C" bit="0"/>
+    <dtcode id="D133" name="P050A Cold Start Idle Air Control System Performance" desc="P050A (SSM pending byte index 0x267 / stored 0x26C, bit 1; read)" tmpaddr="0x000267" memaddr="0x00026C" bit="1"/>
+    <dtcode id="D134" name="P2610 ECM/PCM Internal Engine Off Timer Performance" desc="P2610 (SSM pending byte index 0x267 / stored 0x26C, bit 2; read)" tmpaddr="0x000267" memaddr="0x00026C" bit="2"/>
+    <dtcode id="D135" name="P2420 Evaporative Emission System Switching Valve Control Circuit High" desc="P2420 (SSM pending byte index 0x267 / stored 0x26C, bit 3; read)" tmpaddr="0x000267" memaddr="0x00026C" bit="3"/>
+    <dtcode id="D136" name="P2419 Evaporative Emission System Switching Valve Control Circuit Low" desc="P2419 (SSM pending byte index 0x267 / stored 0x26C, bit 4; read)" tmpaddr="0x000267" memaddr="0x00026C" bit="4"/>
+    <dtcode id="D137" name="P2401 Evaporative Emission System Leak Detection Pump Control Circuit Low" desc="P2401 (SSM pending byte index 0x267 / stored 0x26C, bit 5; read)" tmpaddr="0x000267" memaddr="0x00026C" bit="5"/>
+    <dtcode id="D138" name="P0453 Evaporative Emission System Pressure Sensor High" desc="P0453 (SSM pending byte index 0x267 / stored 0x26C, bit 6; read)" tmpaddr="0x000267" memaddr="0x00026C" bit="6"/>
+    <dtcode id="D139" name="P0452 Evaporative Emission System Pressure Sensor Low" desc="P0452 (SSM pending byte index 0x267 / stored 0x26C, bit 7; read)" tmpaddr="0x000267" memaddr="0x00026C" bit="7"/>
+    <dtcode id="D140" name="P015B O2 Sensor Delayed Response - Lean to Rich (Bank 1 Sensor 1)" desc="P015B (SSM pending byte index 0x2A6 / stored 0x2AB, bit 2; read)" tmpaddr="0x0002A6" memaddr="0x0002AB" bit="2"/>
+    <dtcode id="D141" name="P015A O2 Sensor Delayed Response - Rich to Lean (Bank 1 Sensor 1)" desc="P015A (SSM pending byte index 0x2A6 / stored 0x2AB, bit 3; read)" tmpaddr="0x0002A6" memaddr="0x0002AB" bit="3"/>
+    <dtcode id="D142" name="P014D O2 Sensor Slow Response - Lean to Rich (Bank 1 Sensor 1)" desc="P014D (SSM pending byte index 0x2A6 / stored 0x2AB, bit 6; read)" tmpaddr="0x0002A6" memaddr="0x0002AB" bit="6"/>
+    <dtcode id="D143" name="P014C O2 Sensor Slow Response - Rich to Lean (Bank 1 Sensor 1)" desc="P014C (SSM pending byte index 0x2A6 / stored 0x2AB, bit 7; read)" tmpaddr="0x0002A6" memaddr="0x0002AB" bit="7"/>
+    <dtcode id="D144" name="P04AF Evaporative Emission System Purge Control Valve 'B' Stuck Closed" desc="P04AF (SSM pending byte index 0x2A7 / stored 0x2AC, bit 0; read)" tmpaddr="0x0002A7" memaddr="0x0002AC" bit="0"/>
+    <dtcode id="D145" name="P1451" desc="P1451 (SSM pending byte index 0x2A7 / stored 0x2AC, bit 1; read)" tmpaddr="0x0002A7" memaddr="0x0002AC" bit="1"/>
+    <dtcode id="D146" name="P1449" desc="P1449 (SSM pending byte index 0x2A7 / stored 0x2AC, bit 2; read)" tmpaddr="0x0002A7" memaddr="0x0002AC" bit="2"/>
+    <dtcode id="D147" name="P0455 Evaporative Emission System Leak Detected (Large Leak)" desc="P0455 (SSM pending byte index 0x2A7 / stored 0x2AC, bit 3; read)" tmpaddr="0x0002A7" memaddr="0x0002AC" bit="3"/>
+    <dtcode id="D148" name="P0451 Evaporative Emission System Pressure Sensor Range/Performance" desc="P0451 (SSM pending byte index 0x2A7 / stored 0x2AC, bit 4; read)" tmpaddr="0x0002A7" memaddr="0x0002AC" bit="4"/>
+    <dtcode id="D149" name="P0441 Evaporative Emission System Incorrect Purge Flow" desc="P0441 (SSM pending byte index 0x2A7 / stored 0x2AC, bit 5; read)" tmpaddr="0x0002A7" memaddr="0x0002AC" bit="5"/>
+    <dtcode id="D150" name="P219A Bank 1 Air-Fuel Ratio Imbalance" desc="P219A (SSM pending byte index 0x2A7 / stored 0x2AC, bit 7; read)" tmpaddr="0x0002A7" memaddr="0x0002AC" bit="7"/>
+    <dtcode id="D151" name="P2404 Evaporative Emission System Leak Detection Pump Sense Circuit Range/Performance" desc="P2404 (SSM pending byte index 0x2A8 / stored 0x2AD, bit 5; read)" tmpaddr="0x0002A8" memaddr="0x0002AD" bit="5"/>
+    <dtcode id="D152" name="P2402 Evaporative Emission System Leak Detection Pump Control Circuit High" desc="P2402 (SSM pending byte index 0x2A8 / stored 0x2AD, bit 6; read)" tmpaddr="0x0002A8" memaddr="0x0002AD" bit="6"/>
+    <dtcode id="D153" name="P013F O2 Sensor Delayed Response - Lean to Rich (Bank 1 Sensor 2)" desc="P013F (SSM pending byte index 0x2A9 / stored 0x2AE, bit 2; read)" tmpaddr="0x0002A9" memaddr="0x0002AE" bit="2"/>
+    <dtcode id="D154" name="P013E O2 Sensor Delayed Response - Rich to Lean (Bank 1 Sensor 2)" desc="P013E (SSM pending byte index 0x2A9 / stored 0x2AE, bit 3; read)" tmpaddr="0x0002A9" memaddr="0x0002AE" bit="3"/>
+    <dtcode id="D155" name="P013B O2 Sensor Slow Response - Lean to Rich (Bank 1 Sensor 2)" desc="P013B (SSM pending byte index 0x2A9 / stored 0x2AE, bit 6; read)" tmpaddr="0x0002A9" memaddr="0x0002AE" bit="6"/>
+    <dtcode id="D156" name="P013A O2 Sensor Slow Response - Rich to Lean (Bank 1 Sensor 2)" desc="P013A (SSM pending byte index 0x2A9 / stored 0x2AE, bit 7; read)" tmpaddr="0x0002A9" memaddr="0x0002AE" bit="7"/>
+   </dtcodes>
+  </protocol>
+  <protocol id="OBD" baud="500000" databits="8" stopbits="1" parity="0" connect_timeout="2000" send_timeout="55">
+   <transports>
+    <transport id="iso15765" name="CAN bus" desc="OBD-II over ISO 15765 (CAN), 500 kbit/s">
+     <module id="ecu" address="0x000007E8" desc="Engine Control Unit" tester="0x000007E0" fastpoll="false"/>
+    </transport>
+   </transports>
+   <parameters>
+    <parameter id="O04" name="Calculated Engine Load (OBD)" desc="Calculated Engine Load (OBD PID 0x04, SAE J1979 scaling; read: FFF886A2 (0x171AC4))" ecubyteindex="8" ecubit="4" target="1">
+     <address>0x04</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O05" name="Coolant Temperature (OBD)" desc="Coolant Temperature (OBD PID 0x05, SAE J1979 scaling; read: FFF88E20 x 5 &gt;&gt; 11 (0x171D48))" ecubyteindex="8" ecubit="3" target="1">
+     <address>0x05</address>
+     <conversions>
+      <conversion units="F" expr="(x-40)*1.8+32" format="0" storagetype="uint8"/>
+      <conversion units="C" expr="x-40" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O06" name="Short-Term Fuel Trim (OBD)" desc="Short-Term Fuel Trim (OBD PID 0x06, SAE J1979 scaling; read: closed-loop correction FFF8B2F2 (0x171878); 0 % when not in closed loop)" ecubyteindex="8" ecubit="2" target="1">
+     <address>0x06</address>
+     <conversions>
+      <conversion units="%" expr="(x-128)*100/128" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O07" name="Long-Term Fuel Trim (OBD)" desc="Long-Term Fuel Trim (OBD PID 0x07, SAE J1979 scaling; read: FFF8A689 (0x171978))" ecubyteindex="8" ecubit="1" target="1">
+     <address>0x07</address>
+     <conversions>
+      <conversion units="%" expr="(x-128)*100/128" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O0B" name="Manifold Absolute Pressure (OBD)" desc="Manifold Absolute Pressure (OBD PID 0x0B, SAE J1979 scaling; read: FFF89A32 &gt;&gt; 8 (0x171B68); one byte, so it tops out at 255 kPa)" ecubyteindex="9" ecubit="5" target="1">
+     <address>0x0B</address>
+     <conversions>
+      <conversion units="psia" expr="x*0.145038" format="0.00" storagetype="uint8"/>
+      <conversion units="kPa" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O0C" name="Engine Speed (OBD)" desc="Engine Speed (OBD PID 0x0C, SAE J1979 scaling; read: FFF8CE9C x 25/32 (0x171B3C))" ecubyteindex="9" ecubit="4" target="1">
+     <address>0x0C</address>
+     <conversions>
+      <conversion units="rpm" expr="x/4" format="0" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="O0D" name="Vehicle Speed (OBD)" desc="Vehicle Speed (OBD PID 0x0D, SAE J1979 scaling; read: FFF88E22 (0x171D68))" ecubyteindex="9" ecubit="3" target="1">
+     <address>0x0D</address>
+     <conversions>
+      <conversion units="mph" expr="x*0.621371" format="0" storagetype="uint8"/>
+      <conversion units="km/h" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O0E" name="Ignition Timing (OBD)" desc="Ignition Timing (OBD PID 0x0E, SAE J1979 scaling; read: final timing FFF8A744 via FFF8A745 (0x171568))" ecubyteindex="9" ecubit="2" target="1">
+     <address>0x0E</address>
+     <conversions>
+      <conversion units="degrees" expr="x/2-64" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O0F" name="Intake Air Temperature (OBD)" desc="Intake Air Temperature (OBD PID 0x0F, SAE J1979 scaling; read: FFF8CEE5 - 10 (0x171A68))" ecubyteindex="9" ecubit="1" target="1">
+     <address>0x0F</address>
+     <conversions>
+      <conversion units="F" expr="(x-40)*1.8+32" format="0" storagetype="uint8"/>
+      <conversion units="C" expr="x-40" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O10" name="Mass Airflow (OBD)" desc="Mass Airflow (OBD PID 0x10, SAE J1979 scaling; read: FFF88A4A x 0x753 &gt;&gt; 12 (0x171A58))" ecubyteindex="9" ecubit="0" target="1">
+     <address>0x10</address>
+     <conversions>
+      <conversion units="g/s" expr="x/100" format="0.00" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="O11" name="Throttle Position (OBD)" desc="Throttle Position (OBD PID 0x11, SAE J1979 scaling; read: FFF8A346 (0x171D18))" ecubyteindex="10" ecubit="7" target="1">
+     <address>0x11</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O15" name="Rear O2 Sensor Voltage (OBD)" desc="Rear O2 Sensor Voltage (OBD PID 0x15, SAE J1979 scaling; read: byte A of PID 0x15 (0x171BB8 from FFF8881E))" ecubyteindex="10" ecubit="3" target="1">
+     <address>0x15</address>
+     <conversions>
+      <conversion units="V" expr="(x&gt;&gt;8)/200" format="0.000" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="O1F" name="Run Time Since Start (OBD)" desc="Run Time Since Start (OBD PID 0x1F, SAE J1979 scaling; read: FFF8BA0A)" ecubyteindex="11" ecubit="1" target="1">
+     <address>0x1F</address>
+     <conversions>
+      <conversion units="s" expr="x" format="0" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="O23" name="Fuel Rail Pressure (OBD)" desc="Fuel Rail Pressure (OBD PID 0x23, SAE J1979 scaling; read: FFF88884 x 0xF9DB &gt;&gt; 20 (0x171868): the rail pressure sensor in 10 kPa steps)" ecubyteindex="12" ecubit="5" target="1">
+     <address>0x23</address>
+     <conversions>
+      <conversion units="psi" expr="x*10*0.145038" format="0" storagetype="uint16"/>
+      <conversion units="MPa" expr="x/100" format="0.00" storagetype="uint16"/>
+      <conversion units="kPa" expr="x*10" format="0" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="O24" name="A/F Sensor Lambda (OBD)" desc="A/F Sensor Lambda (OBD PID 0x24, SAE J1979 scaling; read: FFF88AF8 x 4 (0x171C14); measured lambda of the front A/F sensor)" ecubyteindex="12" ecubit="4" target="1">
+     <address>0x24</address>
+     <conversions>
+      <conversion units="lambda" expr="(x&gt;&gt;16)/32768" format="0.000" storagetype="uint32"/>
+      <conversion units="AFR" expr="(x&gt;&gt;16)/32768*14.7" format="0.00" storagetype="uint32"/>
+     </conversions>
+    </parameter>
+    <parameter id="O2C" name="Commanded EGR (OBD)" desc="Commanded EGR (OBD PID 0x2C, SAE J1979 scaling; read: FFF8A81B (0x1717C8))" ecubyteindex="13" ecubit="4" target="1">
+     <address>0x2C</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O2D" name="EGR Error (OBD)" desc="EGR Error (OBD PID 0x2D, SAE J1979 scaling; read: EGR position FFF88A1C vs 2 x command FFF8A81B (0x1715F0))" ecubyteindex="13" ecubit="3" target="1">
+     <address>0x2D</address>
+     <conversions>
+      <conversion units="%" expr="(x-128)*100/128" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O2E" name="Commanded Evaporative Purge (OBD)" desc="Commanded Evaporative Purge (OBD PID 0x2E, SAE J1979 scaling; read: FFF8A707 x 65 &gt;&gt; 6 (0x1715D0))" ecubyteindex="13" ecubit="2" target="1">
+     <address>0x2E</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O2F" name="Fuel Level (OBD)" desc="Fuel Level (OBD PID 0x2F, SAE J1979 scaling; read: FFF8AB72)" ecubyteindex="13" ecubit="1" target="1">
+     <address>0x2F</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O33" name="Barometric Pressure (OBD)" desc="Barometric Pressure (OBD PID 0x33, SAE J1979 scaling; read: FFF88E1E &gt;&gt; 8 (0x171B4C))" ecubyteindex="14" ecubit="5" target="1">
+     <address>0x33</address>
+     <conversions>
+      <conversion units="psia" expr="x*0.145038" format="0.00" storagetype="uint8"/>
+      <conversion units="kPa" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O34" name="A/F Sensor Current (OBD)" desc="A/F Sensor Current (OBD PID 0x34, SAE J1979 scaling; read: FFF88B2E x 0x4189 &gt;&gt; 16 - 0x8000 (0x171AA0); the front A/F sensor pump current)" ecubyteindex="14" ecubit="4" target="1">
+     <address>0x34</address>
+     <conversions>
+      <conversion units="mA" expr="(x&amp;65535)/256-128" format="0.00" storagetype="uint32"/>
+     </conversions>
+    </parameter>
+    <parameter id="O3C" name="Catalyst Temperature (Modelled) (OBD)" desc="Catalyst Temperature (Modelled) (OBD PID 0x3C, SAE J1979 scaling; inferred: FFF8B5BE x 5 &gt;&gt; 5 (0x171588); the ECU has no catalyst temperature sensor, so this is its model (inferred))" ecubyteindex="15" ecubit="4" target="1">
+     <address>0x3C</address>
+     <conversions>
+      <conversion units="F" expr="(x/10-40)*1.8+32" format="0" storagetype="uint16"/>
+      <conversion units="C" expr="x/10-40" format="0" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="O42" name="Control Module Voltage (OBD)" desc="Control Module Voltage (OBD PID 0x42, SAE J1979 scaling; read: FFF88A7E x 625 &gt;&gt; 11 (0x171D58))" ecubyteindex="16" ecubit="6" target="1">
+     <address>0x42</address>
+     <conversions>
+      <conversion units="V" expr="x/1000" format="0.00" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="O43" name="Absolute Load (OBD)" desc="Absolute Load (OBD PID 0x43, SAE J1979 scaling; read: FFF8BA06 (0x17134C))" ecubyteindex="16" ecubit="5" target="1">
+     <address>0x43</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="O44" name="Commanded Lambda (OBD)" desc="Commanded Lambda (OBD PID 0x44, SAE J1979 scaling; read: 0x171C88 (read): the closed-loop target FFF8B31E in closed loop, otherwise 0x200000 / (enrichment terms + 0x100), so open-loop enrichment shows here)" ecubyteindex="16" ecubit="4" target="1">
+     <address>0x44</address>
+     <conversions>
+      <conversion units="lambda" expr="x/32768" format="0.000" storagetype="uint16"/>
+      <conversion units="AFR" expr="x/32768*14.7" format="0.00" storagetype="uint16"/>
+     </conversions>
+    </parameter>
+    <parameter id="O45" name="Relative Throttle Position (OBD)" desc="Relative Throttle Position (OBD PID 0x45, SAE J1979 scaling; read: FFF8AB7D (0x171BD8))" ecubyteindex="16" ecubit="3" target="1">
+     <address>0x45</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O46" name="Ambient Air Temperature (OBD)" desc="Ambient Air Temperature (OBD PID 0x46, SAE J1979 scaling; read: FFF88E42 x 5 &gt;&gt; 11 (0x171C54))" ecubyteindex="16" ecubit="2" target="1">
+     <address>0x46</address>
+     <conversions>
+      <conversion units="F" expr="(x-40)*1.8+32" format="0" storagetype="uint8"/>
+      <conversion units="C" expr="x-40" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O49" name="Accelerator Pedal Position D (OBD)" desc="Accelerator Pedal Position D (OBD PID 0x49, SAE J1979 scaling; read: FFF88C1E (0x171570))" ecubyteindex="17" ecubit="7" target="1">
+     <address>0x49</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O4A" name="Accelerator Pedal Position E (OBD)" desc="Accelerator Pedal Position E (OBD PID 0x4A, SAE J1979 scaling; read: FFF88C2A (0x17157C))" ecubyteindex="17" ecubit="6" target="1">
+     <address>0x4A</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O4C" name="Commanded Throttle Actuator (OBD)" desc="Commanded Throttle Actuator (OBD PID 0x4C, SAE J1979 scaling; read: FFF8AF84 (0x171C64))" ecubyteindex="17" ecubit="4" target="1">
+     <address>0x4C</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O5A" name="Relative Accelerator Pedal Position (OBD)" desc="Relative Accelerator Pedal Position (OBD PID 0x5A, SAE J1979 scaling; read: FFF8AB66 (0x1714C8))" ecubyteindex="19" ecubit="6" target="1">
+     <address>0x5A</address>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+    <parameter id="O5C" name="Engine Oil Temperature (OBD)" desc="Engine Oil Temperature (OBD PID 0x5C, SAE J1979 scaling; read: FFF88E24 x 0xCD &gt;&gt; 16 (0x1731F0))" ecubyteindex="19" ecubit="4" target="1">
+     <address>0x5C</address>
+     <conversions>
+      <conversion units="F" expr="(x-40)*1.8+32" format="0" storagetype="uint8"/>
+      <conversion units="C" expr="x-40" format="0" storagetype="uint8"/>
+     </conversions>
+    </parameter>
+   </parameters>
+  </protocol>
+  <protocol id="SUBUDS" baud="500000" databits="8" stopbits="1" parity="0" connect_timeout="2000" send_timeout="55">
+   <transports>
+    <transport id="iso15765" name="CAN bus" desc="Subaru UDS RAM logging over ISO 15765 (CAN), 500 kbit/s (needs a RomRaider build with the SUBUDS protocol)">
+     <module id="ecu" address="0x000007E8" desc="Engine Control Unit" tester="0x000007E0" fastpoll="false"/>
+    </transport>
+   </transports>
+   <ecuparams>
+    <ecuparam id="J01" name="Engine Speed" desc="Engine Speed (read; 0x11EE38: FFF8CD54 x 25 &gt;&gt; 5 (u16) = rpm x 4)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B496</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B50A</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B4FA</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B980</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8BB26</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8BB42</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8BB92</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C9D6</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A8AA</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A8BC</address>
+     </ecu>
+     <conversions>
+      <conversion units="rpm" expr="x/4" format="0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J02" name="Coolant Temperature" desc="Coolant Temperature (read; 0x11F250: FFF8CD65 (degC + 50) - 10, floored at 0)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A912</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A983</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A973</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD60</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEE7</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEFC</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF44</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDBD</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DD4</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DE4</address>
+     </ecu>
+     <conversions>
+      <conversion units="F" expr="(x-40)*1.8+32" format="0" storagetype="uint8"/>
+      <conversion units="C" expr="x-40" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J03" name="Intake Air Temperature" desc="Intake Air Temperature (read; 0x11F098: FFF8CEE5 (the OBD IAT source, degC + 50) - 10, floored at 0)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A904</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A975</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A965</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD52</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AED9</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEEE</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF36</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDAF</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DC8</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DD8</address>
+     </ecu>
+     <conversions>
+      <conversion units="F" expr="(x-40)*1.8+32" format="0" storagetype="uint8"/>
+      <conversion units="C" expr="x-40" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J04" name="Ignition Timing" desc="Ignition Timing (read; 0x11E728: final timing FFF8A744 + 128 (0.5 degree units))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8B1</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A922</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A912</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8ACFE</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE85</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AE95</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEDD</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD56</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D78</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D88</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="(x-128)/2" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J05" name="Mass Airflow" desc="Mass Airflow (read; 0x11EF60: FFF88A4A x 0x753 &gt;&gt; 12, the same conversion as OBD PID 0x10 (0.01 g/s))" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B49A</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B50E</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B4FE</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B984</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8BB2A</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8BB46</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8BB96</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C9DA</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A8AE</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A8C0</address>
+     </ecu>
+     <conversions>
+      <conversion units="g/s" expr="x/100" format="0.00" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J06" name="MAF Sensor Voltage" desc="MAF Sensor Voltage (inferred; 0x11F28C: FFF88A1A x 125 &gt;&gt; 15; volts if FFF88A1A = V x 13107)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A914</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A985</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A975</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD62</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEE9</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEFE</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF46</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDBF</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DD6</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DE6</address>
+     </ecu>
+     <conversions>
+      <conversion units="V" expr="x*0.02" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J07" name="Manifold Absolute Pressure" desc="Manifold Absolute Pressure (inferred; 0x11EEDC: FFF88A34 &gt;&gt; 8; kPa because index 0x24 is this minus barometric pressure + 128)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8F0</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A961</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A951</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD3D</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEC4</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AED8</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF20</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD99</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DB5</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DC5</address>
+     </ecu>
+     <conversions>
+      <conversion units="psia" expr="x*0.1450377" format="0.00" storagetype="uint8"/>
+      <conversion units="kPa" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J08" name="Manifold Relative Pressure" desc="Manifold Relative Pressure (read; 0x11E7FC: (FFF88A34 &gt;&gt; 8) - (FFF88E1E &gt;&gt; 8) + 128, clipped to 0...255; FFF88E1E is the OBD barometric source)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8BB</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A92C</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A91C</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD08</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE8F</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AE9F</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEE7</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD60</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D81</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D91</address>
+     </ecu>
+     <conversions>
+      <conversion units="psi" expr="(x-128)*0.1450377" format="0.00" storagetype="uint8"/>
+      <conversion units="kPa" expr="x-128" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J09" name="Barometric Pressure" desc="Barometric Pressure (read; 0x11E75C: FFF88668 (kPa x 256) &gt;&gt; 8)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8B4</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A925</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A915</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD01</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE88</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AE98</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEE0</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD59</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D7B</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D8B</address>
+     </ecu>
+     <conversions>
+      <conversion units="psia" expr="x*0.1450377" format="0.00" storagetype="uint8"/>
+      <conversion units="kPa" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J10" name="Wastegate Duty" desc="Wastegate Duty (read; 0x11E910: FFF8B3B8 (WGDC, 25600 = 100 %) x 255/25600)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8C4</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A935</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A925</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD11</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE98</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEA8</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEF0</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD69</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D8A</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D9A</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J11" name="Commanded Throttle" desc="Commanded Throttle (read; 0x11F218: FFF8AF84 x 255/25600; FFF8AF84 is the OBD PID 0x4C (commanded throttle actuator) source, written by 0x0C326C in the torque model)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A910</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A981</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A971</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD5E</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEE5</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEFA</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF42</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDBB</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DD2</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DE2</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J12" name="Battery Voltage" desc="Battery Voltage (inferred; 0x11F29C: FFF9DD61 x 125 &gt;&gt; 7; FFF9DD61 = V x 12.8 (inferred))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A915</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A986</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A976</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD63</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEEA</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEFF</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF47</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDC0</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DD7</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DE7</address>
+     </ecu>
+     <conversions>
+      <conversion units="V" expr="x*0.08" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J13" name="Vehicle Speed" desc="Vehicle Speed (inferred; 0x11F2B0: FFF99835 copied; the programming-session check 0x0AF014 refuses while FFF99835 &gt; cal 0x579AA, i.e. a vehicle-speed check (inferred))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A916</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A987</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A977</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD64</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEEB</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AF00</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF48</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDC1</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DD8</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DE8</address>
+     </ecu>
+     <conversions>
+      <conversion units="km/h" expr="x" format="0" storagetype="uint8"/>
+      <conversion units="mph" expr="x*0.621371" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J14" name="Knock Learning (DAM)" desc="Knock Learning (DAM) (inferred; FFF811AE pointed to directly; DAM x 16 (inferred, see Knock Correction Advance))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF811AE</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF811AE</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF811AE</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF811BE</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF811BE</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8123E</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8123E</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF81100</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF810CE</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF810CE</address>
+     </ecu>
+     <conversions>
+      <conversion units="DAM" expr="x/16" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J15" name="Throttle Position" desc="Throttle Position (read; 0x11E708: FFF8A346 (the OBD PID 0x11 source, 65535 = 100 %) x 125 &gt;&gt; 15 = % x 2.5)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8AF</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A920</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A910</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8ACFC</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE83</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AE93</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEDB</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD54</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D76</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D86</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x*0.4" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J16" name="FFF8A348 (Throttle Scale)" desc="FFF8A348 (Throttle Scale) (inferred; 0x11E718: FFF8A348 x 125 &gt;&gt; 15, same scale as Throttle Position; likely the second throttle signal (inferred))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8B0</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A921</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A911</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8ACFD</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE84</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AE94</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEDC</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD55</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D77</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D87</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x*0.4" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J17" name="FFF8A350 (Throttle Scale)" desc="FFF8A350 (Throttle Scale) (inferred; 0x11EF70: FFF8A350 x 125 &gt;&gt; 15; identity not decoded (pedal or throttle signal))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8F6</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A967</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A957</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD44</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AECB</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEDF</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF27</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDA0</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DBB</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DCB</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x*0.4" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J18" name="FFF8A352 (Throttle Scale)" desc="FFF8A352 (Throttle Scale) (inferred; 0x11EF80: FFF8A352 x 125 &gt;&gt; 15; identity not decoded)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8F7</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A968</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A958</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD45</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AECC</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEE0</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF28</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDA1</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DBC</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DCC</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x*0.4" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J19" name="Closed Loop Lambda (FFF8B2C2)" desc="Closed Loop Lambda (FFF8B2C2) (read; 0x11EDA4: (FFF8B2C2 &lt;&lt; 15) / cal 0x38278 (43194 = lambda 1.0) - 32768, &gt;&gt; 8, + 128; written by the closed-loop routines 0x0FBAFC/0x0FC0CC, role (measured or target) not decoded)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8E4</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A955</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A945</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD31</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEB8</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AECB</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF13</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD8C</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DA9</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DB9</address>
+     </ecu>
+     <conversions>
+      <conversion units="lambda" expr="x/128" format="0.000" storagetype="uint8"/>
+      <conversion units="AFR" expr="x/128*14.7" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J20" name="Closed Loop Target (FFF8B312)" desc="Closed Loop Target (FFF8B312) (read; 0x11ED68: ((FFF8B312 &gt;&gt; 1) - 0x5587) x 0x3BDD &gt;&gt; 18 + 64, clipped; FFF8B312 is the closed-loop target in lambda x 43194 units (0x0FF634); the byte covers only lambda 0.96...1.17)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8E3</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A954</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A944</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD30</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEB7</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AECA</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF12</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD8B</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DA8</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DB8</address>
+     </ecu>
+     <conversions>
+      <conversion units="lambda" expr="((x-64)*262144/15325+21895)*2/43194" format="0.000" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J21" name="FFF8B2D8 (Fuel Correction)" desc="FFF8B2D8 (Fuel Correction) (inferred; 0x11ED58: FFF8B2D8 &gt;&gt; 8; FFF8B2D8 = 0x8000 when not running (0x0FBF58), so 128 = no correction (inferred))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8E2</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A953</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A943</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD2F</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEB6</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEC9</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF11</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD8A</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DA7</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DB7</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="(x-128)/1.28" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J22" name="Knock Raw (A791/A7A7)" desc="Knock Raw (A791/A7A7) (read; 0x11F1E4: (FFF8A791 x 19 + FFF8A7A7 (s8) x 19 + 0xD80) / 27; knock-module variables, meaning not decoded)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A90F</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A980</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A970</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD5D</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEE4</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEF9</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF41</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDBA</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DD1</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DE1</address>
+     </ecu>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J23" name="FFF8A7A7 (Knock Module)" desc="FFF8A7A7 (Knock Module) (read; 0x11EF08: FFF8A7A7 (s8) x 45 &gt;&gt; 6 + 90)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8F3</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A964</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A954</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD40</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEC7</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEDB</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF23</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD9C</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DB8</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DC8</address>
+     </ecu>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J24" name="AVCS FFF8B8EA" desc="AVCS FFF8B8EA (read; 0x11EE88: FFF8B8EA x 0xD0E5 &gt;&gt; 19; AVCS module variable (read by the OCV driver 0x15969C))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8EC</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A95D</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A94D</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD39</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEC0</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AED4</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF1C</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD95</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DB1</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DC1</address>
+     </ecu>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J25" name="AVCS FFF8B8E4" desc="AVCS FFF8B8E4 (read; 0x11EE68: FFF8B8E4 x 0xD0E5 &gt;&gt; 19; AVCS module variable)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8EB</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A95C</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A94C</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD38</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEBF</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AED3</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF1B</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD94</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DB0</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DC0</address>
+     </ecu>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J26" name="AVCS FFF8B900" desc="AVCS FFF8B900 (read; 0x11E990: FFF8B900 x 0xD0E5 &gt;&gt; 19; AVCS module variable)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8C9</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A93A</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A92A</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD16</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE9D</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEAD</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEF5</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD6E</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D8F</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D9F</address>
+     </ecu>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J27" name="AVCS FFF8B8FA" desc="AVCS FFF8B8FA (read; 0x11E970: FFF8B8FA x 0xD0E5 &gt;&gt; 19; AVCS module variable)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8C8</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A939</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A929</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD15</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE9C</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEAC</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEF4</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD6D</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D8E</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D9E</address>
+     </ecu>
+     <conversions>
+      <conversion units="raw" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J28" name="Long-Term Fuel Trim (FFF811D9)" desc="Long-Term Fuel Trim (FFF811D9) (read; SSM byte = FFF811D9 &gt;&gt; 1 + 64 (0x11EC9C, read). FFF811D9 = learned cell + 0x80 (0x0FD3E4) is copied to FFF8A689 (0x0CECA8), and fuel is multiplied by (A689 + 128)/256 (0x0D15EC, read), so one count of 811D9 = 0.39 %; on the SSM byte, % = (x-128) x 100/128 (corrected 2026-10-30; it was shown double).)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8DC</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A94D</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A93D</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD29</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEB0</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEC2</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF0A</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD83</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DA1</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DB1</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="(x-128)*100/128" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J29" name="Intake Cam Advance Bank 1 (FFF88DB0)" desc="Intake Cam Advance Bank 1 (FFF88DB0) (inferred; stock branch (cal 0x3CCC4 bit 0 = 1): learned rest FFF81582 - measured FFF88D8C, advance positive; cam edges later = larger (0x1D165A) (read, my research notes))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8FF</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A970</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A960</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD4D</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AED4</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEE9</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF31</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDAA</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DC3</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DD3</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="x-50" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J30" name="Intake Cam Advance Bank 2 (FFF88DB2)" desc="Intake Cam Advance Bank 2 (FFF88DB2) (inferred; stock branch (cal 0x3CCC4 bit 0 = 1): learned rest FFF81582 - measured FFF88D8C, advance positive; cam edges later = larger (0x1D165A) (read, my research notes))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8FE</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A96F</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A95F</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD4C</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AED3</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEE8</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF30</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDA9</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DC2</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DD2</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="x-50" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J31" name="Exhaust Cam Retard Bank 1 (FFF88DBC)" desc="Exhaust Cam Retard Bank 1 (FFF88DBC) (inferred; stock branch (cal 0x3CCC4 bit 0 = 1): measured FFF88DA0 - learned rest FFF8157E, retard positive; cam edges later = larger (0x1D165A) (read, my research notes))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8CE</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A93F</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A92F</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD1B</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEA2</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEB3</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEFB</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD74</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D94</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DA4</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="x-50" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J32" name="Exhaust Cam Retard Bank 2 (FFF88DBE)" desc="Exhaust Cam Retard Bank 2 (FFF88DBE) (inferred; stock branch (cal 0x3CCC4 bit 0 = 1): measured FFF88DA0 - learned rest FFF8157E, retard positive; cam edges later = larger (0x1D165A) (read, my research notes))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8CD</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A93E</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A92E</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD1A</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEA1</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEB2</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEFA</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD73</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D93</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DA3</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="x-50" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J33" name="Accelerator Pedal" desc="Accelerator Pedal (read; Index 0x029 points directly at FFF88A5E (2015/2016; FFF88DAE 2017, FFF88E3E 2018), the high byte of the u16 pedal value (65535 = 100 %) that feeds the Requested Torque maps (0x09E800 / 0x0BB588, read))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF88A4E</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF88A5E</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF88A5E</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF88C8E</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF88D9E</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF88DAE</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF88DEE</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF88E3E</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF8858A</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF8859A</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x*100/256" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J34" name="ETC Motor Drive" desc="ETC Motor Drive (inferred; Shadow FFF8A93A from FFF8A3B4 (x - 128, read); FFF8A3B4 is the electronic throttle motor drive of the servo loop (inferred, Phase 13))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8D9</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A94A</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A93A</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD26</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEAD</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEBF</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF07</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD80</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D9E</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DAE</address>
+     </ecu>
+     <conversions>
+      <conversion units="raw (signed)" expr="x-128" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J35" name="A/F Sensor Lambda" desc="A/F Sensor Lambda (read; 0x11F040: FFF88AF8 &gt;&gt; 6, capped at 255; FFF88AF8 = measured lambda x 8192 from the front A/F sensor (0x06C1A8, read), the same variable OBD PIDs 0x24/0x34 report. Reads up to lambda 1.99; AFR assumes 14.7 stoich)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A900</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A971</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A961</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD4E</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AED5</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEEA</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF32</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDAB</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DC4</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DD4</address>
+     </ecu>
+     <conversions>
+      <conversion units="lambda" expr="x/128" format="0.000" storagetype="uint8"/>
+      <conversion units="AFR" expr="x/128*14.7" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J36" name="Calculated Engine Load (OBD)" desc="Calculated Engine Load (OBD) (read; 0x11EDE4 copies FFF886A2, which is also the OBD PID 0x04 source (0x171AC4 -&gt; FFF8AB77, read); 255 = 100 %)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8E5</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A956</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A946</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD32</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEB9</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AECC</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF14</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD8D</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DAA</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DBA</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J37" name="Injector Pulse Width (Injector 1)" desc="Injector Pulse Width (Injector 1) (inferred; 0x11F1C0: FFF8CF3C x 0x3333 &gt;&gt; 20 (= /80), capped at 255; FFF8CF3C = injector 1 pulse u32 &gt;&gt; 2 (0x1E5436, read). The pulse unit of 0.8 us is inferred (as logging-patch L24), so 0.256 ms per count; it saturates at about 65 ms)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A90E</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A97F</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A96F</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD5C</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEE3</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEF8</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF40</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDB9</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DD0</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DE0</address>
+     </ecu>
+     <conversions>
+      <conversion units="ms" expr="x*0.256" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J38" name="Radiator Fan Duty" desc="Radiator Fan Duty (read; 0x11EFE0: FFF8B278 x 25 &gt;&gt; 14; FFF8B278 = radiator fan duty, 65535 = 100 % (0x0F7A88, read))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8FC</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A96D</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A95D</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD4A</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AED1</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEE6</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF2E</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BDA7</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DC0</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DD0</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J39" name="Purge Valve Duty" desc="Purge Valve Duty (read; 0x11E85C: FFF8A707 x 65 &gt;&gt; 6, the same conversion and source as OBD PID 0x2E, commanded evaporative purge (0x1715D0 -&gt; FFF8AB6A, read))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8BE</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A92F</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A91F</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD0B</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE92</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEA2</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEEA</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD63</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D84</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D94</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x*100/255" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J40" name="Alternator Duty" desc="Alternator Duty (inferred; 0x11E88C: FFF8B718 x 0x7AE1 &gt;&gt; 19 (x 0.06); FFF8B718 = charging output command, 1667 = 100 % (read; alternator identity inferred))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8C0</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A931</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A921</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD0D</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE94</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEA4</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEEC</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD65</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D86</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89D96</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J41" name="EGR Valve Position" desc="EGR Valve Position (inferred; 0x11E9B0: FFF88A1C &gt;&gt; 1, capped at 255; FFF88A1C is the EGR valve position feedback, compared with 2 x the EGR command FFF8A81B for OBD PID 0x2D (0x1715F0, read); the step unit is inferred)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8CA</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A93B</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A92B</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD17</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AE9E</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEAE</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEF6</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD6F</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D90</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DA0</address>
+     </ecu>
+     <conversions>
+      <conversion units="steps" expr="x*2" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J42" name="Intake OCV Current (Cam 1)" desc="Intake OCV Current (Cam 1) (inferred; 0x11EEB8: FFF88D70 x 625 &gt;&gt; 19; FFF88D70 x 2.5/65536 is the measured OCV current of the intake cam 1 AVCS current feedback (0x15ED58, read); amps inferred)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8EE</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A95F</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A94F</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD3B</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEC2</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AED6</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF1E</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD97</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DB3</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DC3</address>
+     </ecu>
+     <conversions>
+      <conversion units="A" expr="x*0.032" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J43" name="Intake OCV Current (Cam 2)" desc="Intake OCV Current (Cam 2) (inferred; 0x11EEA8: FFF88D72 x 625 &gt;&gt; 19; measured OCV current of intake cam 2 (0x15F158, read); amps inferred)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8ED</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A95E</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A94E</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD3A</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEC1</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AED5</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF1D</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD96</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DB2</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DC2</address>
+     </ecu>
+     <conversions>
+      <conversion units="A" expr="x*0.032" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J44" name="Exhaust OCV Current (Cam 1)" desc="Exhaust OCV Current (Cam 1) (inferred; 0x11EB18: FFF88D84 x 625 &gt;&gt; 19; measured OCV current of exhaust cam 1 (0x163394, read); amps inferred)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8D2</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A943</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A933</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD1F</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEA6</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEB7</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEFF</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD78</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D98</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DA8</address>
+     </ecu>
+     <conversions>
+      <conversion units="A" expr="x*0.032" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J45" name="Exhaust OCV Current (Cam 2)" desc="Exhaust OCV Current (Cam 2) (inferred; 0x11EB08: FFF88D86 x 625 &gt;&gt; 19; measured OCV current of exhaust cam 2 (0x163788, read); amps inferred)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8D1</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A942</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A932</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD1E</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEA5</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AEB6</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AEFE</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD77</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89D97</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DA7</address>
+     </ecu>
+     <conversions>
+      <conversion units="A" expr="x*0.032" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="J46" name="Brake Booster Pressure" desc="Brake Booster Pressure (inferred; 0x11EEE8: FFF88D10 &gt;&gt; 8; FFF88D10 = filtered analog pressure input in kPa x 256, compared with barometric pressure FFF88668 (0x06CF60, read); the brake-booster vacuum model uses baro minus this (identity inferred))" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A8F1</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A962</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A952</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AD3E</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AEC5</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AED9</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AF21</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BD9A</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89DB6</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89DC6</address>
+     </ecu>
+     <conversions>
+      <conversion units="psia" expr="x*0.145038" format="0.0" storagetype="uint8"/>
+      <conversion units="kPa" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L01" name="Target Torque" desc="Target Torque (read; FFF8AECA: target torque after the max-torque caps and shaping (0x0BD404 via 0x0BA868); axis of Target Boost and Wastegate Duty Initial/Maximum. Nm = x/80 - 200 (0x116A0C float constants). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8AE66</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8AEDA</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8AECA</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B2E4</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B476</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B48C</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8B4D8</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C312</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A2BE</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A2D0</address>
+     </ecu>
+     <conversions>
+      <conversion units="ft-lb" expr="(x/80-200)*0.7375621" format="0.0" storagetype="uint16"/>
+      <conversion units="Nm" expr="x/80-200" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L02" name="Throttle Torque Request" desc="Throttle Torque Request (read; FFF8AEDA: throttle-side torque request after the rev/boost torque limits (0x0BD62C), input of the throttle model 0x0C3E34 (AF98 = AF62 + AEDA - 16000). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8AE76</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8AEEA</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8AEDA</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B2F4</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B486</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B49C</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8B4E8</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C322</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A2CE</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A2E0</address>
+     </ecu>
+     <conversions>
+      <conversion units="ft-lb" expr="(x/80-200)*0.7375621" format="0.0" storagetype="uint16"/>
+      <conversion units="Nm" expr="x/80-200" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L03" name="Base Timing" desc="Base Timing (read; FFF8A645 (s8, MOV.B): selected Base Timing table, rate-limited, plus two corrections (0x0C2C08); 0.5 degree units. Feeds A76A -&gt; A76D -&gt; A74B -&gt; fired timing FFF8A744. Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A5E4</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A655</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A645</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AA16</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AB96</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8ABA6</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8ABE7</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BA58</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89AC4</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89AD4</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="((x+128)%256-128)/2" format="0.0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L04" name="Feedback Knock Correction" desc="Feedback Knock Correction (read; FFF8A79A (s8 &lt;= 0): FBKC integrator (0x0E2BE4); 0x0D9E40 adds x*180&gt;&gt;8 to the 0.5 degree timing sum, so one count = 0.3516 degree. Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A739</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A7AA</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A79A</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AB7D</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AD02</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AD12</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AD56</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BBCA</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89C0A</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89C1A</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="((x+128)%256-128)*0.3515625" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L05" name="Fine Learning Knock Correction" desc="Fine Learning Knock Correction (read; FFF8A7A7 (s8): applied FLKC cell value (0x0E73CC), same 0.3516 degree count as FBKC (0x0D9088: x 0x5A / 128). Index 0x199 (J23) carries a coarser copy (x*45&gt;&gt;6 + 90). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A746</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A7B7</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A7A7</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AB8A</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8AD0F</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AD1F</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AD66</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BBDA</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89C17</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89C27</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="((x+128)%256-128)*0.3515625" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L06" name="Knock Correction Advance" desc="Knock Correction Advance (read; FFF8A791 (u8, MOVU.B): KCA = KCA max x DAM curve (0x0E1FD8); same count as FBKC (0x0DB3D4 x 180 &gt;&gt; 8). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A730</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A7A1</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A791</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AB74</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8ACF9</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8AD09</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AD4D</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BBC1</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89C01</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89C11</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="x*0.3515625" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L07" name="Total Knock Correction" desc="Total Knock Correction (read; FFF8A77B (s8) = clamp(FBKC A79A + KCA A791 + FLKC A7A7, -128..127), 0 while FFF886AB bit 5 (0x0DFA88). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A71A</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A78B</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A77B</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AB5E</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8ACE3</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8ACF3</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AD36</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BBAA</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89BEC</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89BFC</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="((x+128)%256-128)*0.3515625" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L08" name="Combustion Mode" desc="Combustion Mode (read; FFF8A85C (u8): 0 -&gt; 1 -&gt; 2 -&gt; 3 -&gt; 4 after start (0x109B4C); 2 = stratified catalyst heating, 3 = second phase, 4 = normal running (roles inferred, Phase 7 / my research notes). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF8A7FB</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF8A86C</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF8A85C</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF8AC41</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF8ADC7</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF8ADD7</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF8AE1F</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8BC95</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF89CCC</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF89CDC</address>
+     </ecu>
+     <conversions>
+      <conversion units="mode" expr="x" format="0" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L09" name="Fuel Rail Pressure" desc="Fuel Rail Pressure (read; FFF88884 (u16): filtered rail pressure used by the HPFP controller (0x164DB0 actual vs target) and OBD PID 0x23 (2015/2016); 1639.34 counts per MPa (injector-table axes). In 2017/2018 PID 0x23 reads a different variable; the value here is the HPFP controller input in every image. Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF88874</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF88884</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF88884</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF88AB4</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF88BC4</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF88BD4</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF88C14</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF88C64</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF883B0</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF883C0</address>
+     </ecu>
+     <conversions>
+      <conversion units="psi" expr="x*0.0884730" format="0" storagetype="uint16"/>
+      <conversion units="MPa" expr="x/1639.34" format="0.00" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L10" name="Target Fuel Rail Pressure" desc="Target Fuel Rail Pressure (read; FFF8B9A0 (u16): HPFP target (0x165180: table byte x 150), same unit as the actual. Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B93C</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B9B0</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B9A0</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8BE4A</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8BFF4</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8C010</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8C062</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8CEC8</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8AD12</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8AD28</address>
+     </ecu>
+     <conversions>
+      <conversion units="psi" expr="x*0.0884730" format="0" storagetype="uint16"/>
+      <conversion units="MPa" expr="x/1639.34" format="0.00" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L11" name="Target Boost" desc="Target Boost (read; FFF8B3B0 (u16): compensated boost target (0x108678: Target Boost(rpm, target torque) x baro/IAT comp), boost-control unit kPa abs = (x + 3404)/256; psi shown against 101.325 kPa (project convention). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B34C</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B3C0</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B3B0</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B82A</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B9D0</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B9EC</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8BA3C</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C880</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A788</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A79A</address>
+     </ecu>
+     <conversions>
+      <conversion units="psi" expr="((x+3404)/256-101.325)*0.1450377" format="0.00" storagetype="uint16"/>
+      <conversion units="kPa abs" expr="(x+3404)/256" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L12" name="Boost Control Pressure" desc="Boost Control Pressure (read; FFF89264 (u16): the boost controller's measured manifold pressure (0x1080E4 error = B3B0 - 89264), same unit as Target Boost. Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF89254</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF89264</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF89264</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF89494</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF895A4</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF895B8</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF895F8</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF89648</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF88D8C</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF88D9C</address>
+     </ecu>
+     <conversions>
+      <conversion units="psi" expr="((x+3404)/256-101.325)*0.1450377" format="0.00" storagetype="uint16"/>
+      <conversion units="kPa abs" expr="(x+3404)/256" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L13" name="Wastegate Duty (Full Resolution)" desc="Wastegate Duty (Full Resolution) (read; FFF8B3B8 (u16): wastegate duty to timer E channel 11 (0x1088B4), 25600 = 100 %. J10 is the same value / 100.4. Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B354</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B3C8</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B3B8</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B832</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B9D8</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B9F4</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8BA44</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C888</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A790</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A7A2</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x/256" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L14" name="Wastegate Duty Feedback" desc="Wastegate Duty Feedback (inferred; FFF8B3AA (s16): boost feedback P + I (0x1080E4), added to the initial duty in 0x108098 (B3A8 = min(B38C x B3B6/32768 + B3AA, B39C)); duty unit 256 per % assumed from B3B8 (inferred). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B346</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B3BA</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B3AA</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B824</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B9CA</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B9E6</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8BA36</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C87A</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A782</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A794</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="((x+32768)%65536-32768)/256" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L15" name="Closed Loop Target" desc="Closed Loop Target (read; FFF8B31E (u16): closed-loop target, equivalence ratio x 32768 (0x0FF8C8; OBD helper 0x171C88 reports 2^30/x). AFR uses stoich 14.7 (assumed). J20 is a coarse byte of the earlier stage B312. Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B2BA</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B32E</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B31E</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B798</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B93A</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B956</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8B9A6</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C7EA</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A6F8</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A70A</address>
+     </ecu>
+     <conversions>
+      <conversion units="AFR" expr="14.7*32768/x" format="0.00" storagetype="uint16"/>
+      <conversion units="lambda" expr="32768/x" format="0.000" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L16" name="A/F Correction (Closed Loop)" desc="A/F Correction (Closed Loop) (read; FFF8B2F4 (s16): closed-loop correction (0x0FEC3C), factor B2EA = 32768 + B2F4 (0x0FE7F0), limited to +-11469; 32768 = 100 % (inferred from the factor form). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B290</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B304</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B2F4</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B76E</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B908</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B924</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8B972</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C7B6</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A6CE</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A6E0</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="((x+32768)%65536-32768)/327.68" format="0.00" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L17" name="A/F Learning (FFF811D6)" desc="A/F Learning (FFF811D6) (inferred; FFF811D6 (s8, backup RAM): high byte of the learned value FFF8B2E0 (0x0FC400 -&gt; 0x0FC5B4); feeds the long-term trim chain 0x0FD3E4 -&gt; FFF811D9 -&gt; FFF8A689. one count = 0.39 % (the trim chain multiplies fuel by (A689+128)/256, 0x0D15EC, read; corrected 2026-10-30 from 0.78 %). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address>0xF811D6</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address>0xF811D6</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address>0xF811D6</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address>0xF811E6</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address>0xF811E6</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address>0xF81266</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address>0xF81269</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address>0xF8112B</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address>0xF810F6</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address>0xF810F6</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="((x+128)%256-128)*0.390625" format="0.00" storagetype="uint8"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L18" name="Throttle Model Air Requirement" desc="Throttle Model Air Requirement (inferred; FFF8AFA8 (u16): (AF2C - 16000)/(AF64 - 16000) x min(05A118, AF56) x 4 (0x0C37D8), 32768 = 1.0; input of Throttle Required Area 05A148 (meaning as % of full-load air inferred). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8AF44</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8AFB8</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8AFA8</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B3C8</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B55A</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B570</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8B5BC</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C3F6</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A396</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A3A8</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x/327.68" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L19" name="Torque Model Throttle Opening" desc="Torque Model Throttle Opening (inferred; FFF8AF12 (u16): throttle opening from the Throttle Opening from Target Torque tables (0x0C0010), rate-limited; 65535 = 100 % (inferred from being the input of 059D2C). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8AEAE</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8AF22</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8AF12</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B332</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B4C4</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B4DA</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8B526</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C360</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A300</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A312</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="x/655.35" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L20" name="Throttle Required Area" desc="Throttle Required Area (read; FFF8AFB4 (u16): Throttle Required Area 05A148(rpm, AFA8) (0x0C4D84), input of Throttle Opening 05A0BC in 0x0C326C; 21468 = wide open (physical unit not determined). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8AF50</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8AFC4</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8AFB4</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B3D4</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B566</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B57C</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8B5C8</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C402</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A3A2</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A3B4</address>
+     </ecu>
+     <conversions>
+      <conversion units="raw area" expr="x" format="0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L21" name="ETC Target" desc="ETC Target (read; FFF8AFBA (u16): ETC target after start add, idle floor and fault caps (0x0C4E5C); % = (x - 10)/460.09. Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8AF56</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8AFCA</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8AFBA</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8B3DA</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8B56C</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8B582</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8B5CE</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8C408</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8A3A8</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8A3BA</address>
+     </ecu>
+     <conversions>
+      <conversion units="%" expr="(x-10)/460.09" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L22" name="Intake Cam Target" desc="Intake Cam Target (inferred; FFF8B94A (s16): final intake AVCS target of 0x15C250 (clamped +-90 degrees, 364.09 counts per degree), read by 0x15C880. Units read; crank/cam degrees and sign convention not verified (inferred). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B8E6</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B95A</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B94A</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8BDE8</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8BF92</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8BFAE</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8BFFE</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8CE60</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8ACBE</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8ACD4</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="((x+32768)%65536-32768)*180/65536" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L23" name="Exhaust Cam Target" desc="Exhaust Cam Target (inferred; FFF8B90A (s16): final exhaust AVCS target of 0x16032C, read by 0x1608D8. Same unit and caveat as intake. Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8B8A6</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8B91A</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8B90A</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8BD9C</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8BF46</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8BF62</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8BFB2</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8CE04</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8AC82</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8AC98</address>
+     </ecu>
+     <conversions>
+      <conversion units="degrees" expr="((x+32768)%65536-32768)*180/65536" format="0.0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+    <ecuparam id="L24" name="Injector Pulse Width (C0B0)" desc="Injector Pulse Width (C0B0) (inferred; Low word of FFF8C0B0 (u32): output of the first pulse routine 0x0D2BB8 (latency + quantity x flow comp, x 1.25 = counts of 0.8 us). Logged as the low 16 bits: wraps above 52.4 ms. First injector / first pulse (inferred from the call order). Read straight from RAM: no logging patch needed with SUBUDS.)" target="1">
+     <ecu id="8B145E7307">
+      <address length="2">0xF8C04E</address>
+     </ecu>
+     <ecu id="A601A27007,A629B05007,A689A05007,8B145A7507,A669B07007">
+      <address length="2">0xF8C0C2</address>
+     </ecu>
+     <ecu id="8B145A7A07">
+      <address length="2">0xF8C0B2</address>
+     </ecu>
+     <ecu id="A7A1A03007">
+      <address length="2">0xF8C532</address>
+     </ecu>
+     <ecu id="A729A07007">
+      <address length="2">0xF8C706</address>
+     </ecu>
+     <ecu id="B029B04007">
+      <address length="2">0xF8C722</address>
+     </ecu>
+     <ecu id="B029A07007,B029B07007">
+      <address length="2">0xF8C772</address>
+     </ecu>
+     <ecu id="BA61A04007,B201A03207,B229B05007,B229B07007">
+      <address length="2">0xF8D512</address>
+     </ecu>
+     <ecu id="8B145E5007">
+      <address length="2">0xF8B2DE</address>
+     </ecu>
+     <ecu id="8B045F7107,8B345A7107,8B145E7207,8B345A7207,8B745A7207">
+      <address length="2">0xF8B2F2</address>
+     </ecu>
+     <conversions>
+      <conversion units="ms" expr="x*0.0008" format="0.000" storagetype="uint16"/>
+      <conversion units="us" expr="x*0.8" format="0" storagetype="uint16"/>
+     </conversions>
+    </ecuparam>
+   </ecuparams>
+  </protocol>
+ </protocols>
+</logger>
