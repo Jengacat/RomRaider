@@ -1,6 +1,6 @@
 /*
  * RomRaider Open-Source Tuning, Logging and Reflashing
- * Copyright (C) 2006-2022 RomRaider.com
+ * Copyright (C) 2006-2026 RomRaider.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,33 +24,27 @@ import static com.romraider.util.ParamChecker.checkNotNullOrEmpty;
 import static com.romraider.util.SaxParserFactory.getSaxParser;
 import org.apache.log4j.Logger;
 import org.xml.sax.SAXParseException;
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 
 public final class UserProfileLoaderImpl implements UserProfileLoader {
     private static final Logger LOGGER = Logger.getLogger(UserProfileLoaderImpl.class);
 
+    @Override
     public UserProfile loadProfile(String userProfileFilePath) {
         checkNotNullOrEmpty(userProfileFilePath, "userProfileFilePath");
         LOGGER.info("Loading profile: " + userProfileFilePath);
         try {
-            InputStream inputStream = new BufferedInputStream(new FileInputStream(new File(userProfileFilePath)));
-            try {
+                File userProfileFile = new File(userProfileFilePath);
                 UserProfileHandler handler = new UserProfileHandler();
-                getSaxParser().parse(inputStream, handler);
+                getSaxParser().parse(userProfileFile, handler);
                 return handler.getUserProfile();
-            } finally {
-                inputStream.close();
-            }
         } catch (FileNotFoundException fileException) {
         	if(fileException.getMessage().contains("profile.dtd")) {
         		LOGGER.info("Profile.dtd missing, applying patch: " + userProfileFilePath);
@@ -70,10 +64,10 @@ public final class UserProfileLoaderImpl implements UserProfileLoader {
             return null;
         }
     }
-    
+
     //The .dtd file was removed in a later version. This causes an error while loading the profile.xml, because profile.dtd is missing
     //This removes the line from the profile.xml
-    private void patchUserProfile(String userProfileFilePath) {   	
+    private void patchUserProfile(String userProfileFilePath) {
     	try {
     		BufferedReader br = new BufferedReader(new FileReader(userProfileFilePath));
     		List<String> newLines = new LinkedList<String>();
@@ -81,15 +75,15 @@ public final class UserProfileLoaderImpl implements UserProfileLoader {
 		    while ((line = br.readLine()) != null) {
     			if (!line.contains("profile.dtd")) {
     				newLines.add(line);
-    			} 
-		    }      	     	
-		    br.close();	   
-		    
-		    FileWriter writer = new FileWriter(userProfileFilePath); 
+    			}
+		    }
+		    br.close();
+
+		    FileWriter writer = new FileWriter(userProfileFilePath);
 		    for(String str: newLines) {
 		      writer.write(str + "\n");
 		    }
-		    writer.close();      	
+		    writer.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
