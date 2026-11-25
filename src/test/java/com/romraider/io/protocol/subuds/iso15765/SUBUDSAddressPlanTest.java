@@ -146,20 +146,23 @@ public class SUBUDSAddressPlanTest {
     }
 
     @Test
-    public void ramWindow() {
+    public void addressesAreLeftToTheEcu() {
+        // no window of its own: an address outside the SH RAM is planned as written
         final List<EcuQuery> queries = new ArrayList<EcuQuery>();
-        queries.add(byteAt(0xFFF80000L));
-        queries.add(byteAt(0xFFF9FFFEL));
-        SUBUDSAddressPlan.build(queries);
-        for (long bad : new long[]{0xFFF7FFFFL, 0xFFF9FFFFL}) {
-            queries.clear();
-            queries.add(byteAt(bad));
-            try {
-                SUBUDSAddressPlan.build(queries);
-                fail(String.format("%08X accepted", bad));
-            }
-            catch (UnsupportedProtocolException expected) {
-            }
+        queries.add(byteAt(0xFF900000L));
+        final SUBUDSAddressPlan plan = SUBUDSAddressPlan.build(queries);
+        assertArrayEquals(new long[]{0xFF900000L, 1}, plan.getRanges(0).get(0));
+    }
+
+    @Test
+    public void parametersPerIdentifier() {
+        final List<EcuQuery> queries = new ArrayList<EcuQuery>();
+        for (int i = 0; i < 11; i++) {
+            queries.add(byteAt(0xFFF88000L + 0x10 * i));
         }
+        final SUBUDSAddressPlan plan = SUBUDSAddressPlan.build(queries);
+        assertEquals(10, plan.getParameterNames(0).size());
+        assertEquals(1, plan.getParameterNames(1).size());
+        assertEquals(queries.get(10).getLoggerData().getName(), plan.getParameterNames(1).get(0));
     }
 }

@@ -24,6 +24,7 @@ import static com.romraider.util.HexUtil.asHex;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -212,13 +213,20 @@ public class SUBUDSLoggerConnectionTest {
         assertTrue(m.script.isEmpty());
     }
 
-    @Test(expected = com.romraider.logger.ecu.exception.InvalidResponseException.class)
-    public void refusedDefinitionIsReported() {
+    @Test
+    public void refusedAddressNamesTheParameters() {
         final TranscriptManager m = new TranscriptManager()
                 .expect("1003", "5003")
                 .expect("2C03", "6C03")
                 .expect(DEFINE, "7F2C31");
-        new SUBUDSLoggerConnection(m, new SUBUDSLoggerProtocol())
-                .sendAddressReads(queries(), ECU, new PollingStateImpl());
+        try {
+            new SUBUDSLoggerConnection(m, new SUBUDSLoggerProtocol())
+                    .sendAddressReads(queries(), ECU, new PollingStateImpl());
+            fail("refused address accepted");
+        }
+        catch (com.romraider.logger.ecu.exception.InvalidResponseException expected) {
+            assertTrue(expected.getMessage(), expected.getMessage().contains("J01"));
+            assertTrue(expected.getMessage(), expected.getMessage().contains("V01"));
+        }
     }
 }

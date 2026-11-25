@@ -23,6 +23,7 @@ import static com.romraider.util.HexUtil.asHex;
 import static com.romraider.util.ParamChecker.checkNotNull;
 import static org.apache.log4j.Logger.getLogger;
 
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -38,6 +39,7 @@ import com.romraider.logger.ecu.comms.manager.PollingStateImpl;
 import com.romraider.logger.ecu.comms.query.EcuInitCallback;
 import com.romraider.logger.ecu.comms.query.EcuQuery;
 import com.romraider.logger.ecu.definition.Module;
+import com.romraider.logger.ecu.exception.InvalidResponseException;
 import com.romraider.logger.ecu.exception.SerialCommunicationException;
 import com.romraider.util.ResourceUtil;
 import com.romraider.util.SettingsManager;
@@ -167,6 +169,13 @@ public final class SUBUDSLoggerConnection implements LoggerConnection {
             response = manager.send(request);
             if (LOGGER.isDebugEnabled())
                 LOGGER.debug(String.format("%s Load address response <--- %s", module, asHex(response)));
+            if (protocol.isAddressRefused(response)) {
+                // an address outside the RAM this ECU lets us log
+                final String names = plan.getParameterNames(i).toString();
+                plan = null;
+                throw new InvalidResponseException(MessageFormat.format(
+                        rb.getString("ADDRESSREFUSED"), names.substring(1, names.length() - 1)));
+            }
             protocol.validateLoadAddressResponse(response, dids[i]);
         }
     }

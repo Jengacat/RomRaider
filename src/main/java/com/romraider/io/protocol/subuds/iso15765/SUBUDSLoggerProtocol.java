@@ -19,6 +19,7 @@
 
 package com.romraider.io.protocol.subuds.iso15765;
 
+import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.LOAD_ADDRESS_COMMAND;
 import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.NRC;
 import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.NRC_OUT_OF_RANGE;
 import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.READ_DID_COMMAND;
@@ -120,6 +121,15 @@ public final class SUBUDSLoggerProtocol implements LoggerProtocolSUBUDS {
                 && response.length > RESPONSE_NON_DATA_BYTES + 2
                 && response[RESPONSE_NON_DATA_BYTES] == NRC
                 && response[RESPONSE_NON_DATA_BYTES + 1] == READ_DID_COMMAND
+                && response[RESPONSE_NON_DATA_BYTES + 2] == NRC_OUT_OF_RANGE;
+    }
+
+    @Override
+    public boolean isAddressRefused(byte[] response) {
+        return response != null
+                && response.length > RESPONSE_NON_DATA_BYTES + 2
+                && response[RESPONSE_NON_DATA_BYTES] == NRC
+                && response[RESPONSE_NON_DATA_BYTES + 1] == LOAD_ADDRESS_COMMAND
                 && response[RESPONSE_NON_DATA_BYTES + 2] == NRC_OUT_OF_RANGE;
     }
 
