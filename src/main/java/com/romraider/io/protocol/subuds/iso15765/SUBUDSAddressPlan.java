@@ -117,7 +117,7 @@ public final class SUBUDSAddressPlan {
                 didBytes = 0;
             }
             did.add(r);
-            didBytes += r[1];
+            didBytes += (int) r[1];
         }
         if (perDid.size() > MAX_DIDS) {
             throw new UnsupportedProtocolException(MessageFormat.format(

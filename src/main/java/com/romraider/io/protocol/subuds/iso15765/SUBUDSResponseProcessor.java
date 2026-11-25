@@ -25,7 +25,6 @@ import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.NRC;
 import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.READ_DID_RESPONSE;
 import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.RESPONSE_NON_DATA_BYTES;
 import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.SESSION_RESPONSE;
-import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.TESTER_PRESENT_RESPONSE;
 import static com.romraider.util.ByteUtil.asUnsignedInt;
 import static com.romraider.util.HexUtil.asHex;
 import static com.romraider.util.ParamChecker.checkNotNullOrEmpty;
@@ -59,7 +58,7 @@ public final class SUBUDSResponseProcessor {
                     response.length > 6 ? asHex(response[6]) : "?"));
         }
         assertOneOf(new byte[]{ECU_INIT_RESPONSE, SESSION_RESPONSE, LOAD_ADDRESS_RESPONSE,
-                READ_DID_RESPONSE, TESTER_PRESENT_RESPONSE},
+                READ_DID_RESPONSE},
                 response[RESPONSE_NON_DATA_BYTES], "Invalid response code");
     }
 

@@ -113,7 +113,7 @@ public final class SUBUDSLoggerConnection implements LoggerConnection {
             loadAddresses(queries, module);
             response = readAddresses(module, pollState);
         }
-        protocol.processReadAddressResponses(queries, response, plan);
+        protocol.processReadAddressResponses(module, queries, response, plan);
     }
 
     @Override

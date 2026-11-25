@@ -30,8 +30,6 @@ public interface ProtocolSUBUDS extends Protocol {
 
     byte[] constructEcuStopRequest(Module module);
 
-    byte[] constructTesterPresentRequest(Module module);
-
     byte[] constructClearAddressRequest(Module module);
 
     byte[] constructLoadAddressRequest(Module module, int did, byte[][] addresses, int[] lengths);

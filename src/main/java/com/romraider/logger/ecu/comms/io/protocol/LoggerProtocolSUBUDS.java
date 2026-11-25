@@ -31,8 +31,6 @@ public interface LoggerProtocolSUBUDS extends LoggerProtocol {
 
     byte[] constructEcuStopRequest(Module module);
 
-    byte[] constructTesterPresentRequest(Module module);
-
     byte[] constructClearAddressRequest(Module module);
 
     SUBUDSAddressPlan buildAddressPlan(Collection<EcuQuery> queries);
@@ -48,7 +46,7 @@ public interface LoggerProtocolSUBUDS extends LoggerProtocol {
     boolean isDefinitionLost(byte[] response);
 
     void processReadAddressResponses(
-            Collection<EcuQuery> queries, byte[] response, SUBUDSAddressPlan plan);
+            Module module, Collection<EcuQuery> queries, byte[] response, SUBUDSAddressPlan plan);
 
     Collection<EcuQuery> filterDuplicates(Collection<EcuQuery> queries);
 }

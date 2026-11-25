@@ -62,11 +62,6 @@ public final class SUBUDSLoggerProtocol implements LoggerProtocolSUBUDS {
     }
 
     @Override
-    public byte[] constructTesterPresentRequest(Module module) {
-        return protocol.constructTesterPresentRequest(module);
-    }
-
-    @Override
     public byte[] constructClearAddressRequest(Module module) {
         return protocol.constructClearAddressRequest(module);
     }
@@ -130,13 +125,13 @@ public final class SUBUDSLoggerProtocol implements LoggerProtocolSUBUDS {
 
     @Override
     public void processReadAddressResponses(
-            Collection<EcuQuery> queries, byte[] response, SUBUDSAddressPlan plan) {
+            Module module, Collection<EcuQuery> queries, byte[] response, SUBUDSAddressPlan plan) {
 
+        checkNotNull(module, "module");
         checkNotNullOrEmpty(queries, "queries");
         checkNotNullOrEmpty(response, "response");
         checkNotNull(plan, "plan");
-        SUBUDSResponseProcessor.validateResponse(
-                ((SUBUDSProtocol) protocol).getModule(), response);
+        SUBUDSResponseProcessor.validateResponse(module, response);
         final int base = RESPONSE_NON_DATA_BYTES;
         if (response[base] != READ_DID_RESPONSE
                 || response.length < base + plan.getReplyLength()) {
@@ -168,23 +163,24 @@ public final class SUBUDSLoggerProtocol implements LoggerProtocolSUBUDS {
         }
     }
 
-    // LoggerProtocol methods for callers that do not know about plans
+    // SUBUDSLoggerConnection reads through an address plan (the methods above);
+    // the plain LoggerProtocol read methods have no use here
 
     @Override
     public byte[] constructReadAddressRequest(Module module, Collection<EcuQuery> queries) {
-        return constructReadAddressRequest(module, buildAddressPlan(queries));
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public byte[] constructReadAddressResponse(
             Collection<EcuQuery> queries, PollingState pollState) {
-        return constructReadAddressResponse(buildAddressPlan(queries));
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void processReadAddressResponses(
             Collection<EcuQuery> queries, byte[] response, PollingState pollState) {
-        processReadAddressResponses(queries, response, buildAddressPlan(queries));
+        throw new UnsupportedOperationException();
     }
 
     @Override

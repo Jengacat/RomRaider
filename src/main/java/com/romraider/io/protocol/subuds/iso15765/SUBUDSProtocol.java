@@ -37,7 +37,7 @@ import com.romraider.logger.ecu.exception.UnsupportedProtocolException;
 
 /**
  * Requests: AA (ECU ID, as SSM), 10 03 / 10 01 (session), 2C 03 (clear),
- * 2C 02 F3xx 14 {addr4 len1}.. (define), 22 F3xx.. (read), 3E 00 (tester present).
+ * 2C 02 F3xx 14 {addr4 len1}.. (define), 22 F3xx.. (read).
  */
 public final class SUBUDSProtocol implements ProtocolSUBUDS {
     public static final byte ECU_INIT_COMMAND = (byte) 0xAA;
@@ -53,8 +53,6 @@ public final class SUBUDSProtocol implements ProtocolSUBUDS {
     public static final byte ADDRESS_AND_LENGTH_FORMAT = (byte) 0x14;
     public static final byte READ_DID_COMMAND = (byte) 0x22;
     public static final byte READ_DID_RESPONSE = (byte) 0x62;
-    public static final byte TESTER_PRESENT_COMMAND = (byte) 0x3E;
-    public static final byte TESTER_PRESENT_RESPONSE = (byte) 0x7E;
     public static final byte NRC = (byte) 0x7F;
     public static final byte NRC_OUT_OF_RANGE = (byte) 0x31;
     public static final int RESPONSE_NON_DATA_BYTES = 4;     // CAN ID
@@ -80,13 +78,6 @@ public final class SUBUDSProtocol implements ProtocolSUBUDS {
         checkNotNull(module, "module");
         this.module = module;
         return buildRequest(SESSION_COMMAND, SESSION_DEFAULT);
-    }
-
-    @Override
-    public byte[] constructTesterPresentRequest(Module module) {
-        checkNotNull(module, "module");
-        this.module = module;
-        return buildRequest(TESTER_PRESENT_COMMAND, (byte) 0x00);
     }
 
     @Override
@@ -257,10 +248,6 @@ public final class SUBUDSProtocol implements ProtocolSUBUDS {
                 return 55;
             }
         };
-    }
-
-    Module getModule() {
-        return module;
     }
 
     private byte[] buildRequest(byte command, byte... content) {
