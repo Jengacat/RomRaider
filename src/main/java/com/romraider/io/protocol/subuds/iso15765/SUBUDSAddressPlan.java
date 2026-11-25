@@ -40,9 +40,11 @@ import com.romraider.util.ResourceUtil;
 /**
  * Packs the queries' RAM bytes into address ranges and dynamic identifiers
  * (F300-F313) within the ECU limits: 10 ranges per identifier, 100 bytes per
- * range, 0x3FE bytes per identifier, a reply of at most 0xFFF bytes, and RAM
- * 0xFFF80000-0xFFF9FFFE. A 3-byte address with the top bit set gets 0xFF as its
- * high byte (0xF8CD54 -> 0xFFF8CD54), as in the NCS protocol.
+ * range, 0x3FE bytes per identifier, a reply of at most 0xFFF bytes. Which
+ * addresses can be logged is left to the ECU: it refuses a range outside its
+ * RAM windows (NRC 0x31), and the connection reports the parameters of that
+ * identifier. A 3-byte address with the top bit set gets 0xFF as its high byte
+ * (0xF8CD54 -> 0xFFF8CD54), as in the NCS protocol.
  */
 public final class SUBUDSAddressPlan {
     private static final ResourceBundle rb = new ResourceUtil().getBundle(
@@ -53,27 +55,28 @@ public final class SUBUDSAddressPlan {
     public static final int MAX_RANGE_LENGTH = 100;
     public static final int MAX_DID_BYTES = 0x3FE;
     public static final int MAX_REPLY_BYTES = 0xFFF;
-    public static final long RAM_START = 0xFFF80000L;
-    public static final long RAM_LIMIT = 0xFFF9FFFFL;   // start + length must not exceed this
     /** Bytes between two needed bytes that are read anyway to keep them in one range. */
     public static final int MERGE_GAP = 2;
 
     private final int[] dids;
     private final List<List<long[]>> ranges;           // per identifier: {start, length}
     private final Map<String, int[]> positions;        // query hex -> offset of each byte in the reply
+    private final List<List<String>> names;            // per identifier: the parameters it carries
     private final int replyLength;                     // 0x62 + (DID + data) per identifier
 
     private SUBUDSAddressPlan(int[] dids, List<List<long[]>> ranges,
-            Map<String, int[]> positions, int replyLength) {
+            Map<String, int[]> positions, List<List<String>> names, int replyLength) {
         this.dids = dids;
         this.ranges = ranges;
         this.positions = positions;
+        this.names = names;
         this.replyLength = replyLength;
     }
 
     public static SUBUDSAddressPlan build(Collection<EcuQuery> queries) {
         checkNotNullOrEmpty(queries, "queries");
         final Map<String, long[]> queryBytes = new LinkedHashMap<String, long[]>();
+        final Map<String, String> queryNames = new HashMap<String, String>();
         final TreeSet<Long> needed = new TreeSet<Long>();
         for (EcuQuery query : queries) {
             if (queryBytes.containsKey(query.getHex())) {
@@ -81,14 +84,10 @@ public final class SUBUDSAddressPlan {
             }
             final long[] bytes = byteAddresses(query);
             for (long b : bytes) {
-                if (b < RAM_START || b + 1 > RAM_LIMIT) {
-                    throw new UnsupportedProtocolException(MessageFormat.format(
-                            rb.getString("ADDRESSOUTSIDE"), query.getLoggerData().getName(),
-                            String.format("0x%08X", b)));
-                }
                 needed.add(b);
             }
             queryBytes.put(query.getHex(), bytes);
+            queryNames.put(query.getHex(), query.getLoggerData().getName());
         }
 
         // merge the needed bytes into ranges
@@ -125,8 +124,9 @@ public final class SUBUDSAddressPlan {
                     String.valueOf(perDid.size()), String.valueOf(MAX_DIDS)));
         }
 
-        // reply offset of every needed byte
+        // reply offset and identifier of every needed byte
         final Map<Long, Integer> offsetOf = new HashMap<Long, Integer>();
+        final Map<Long, Integer> didOf = new HashMap<Long, Integer>();
         int offset = 1;                                    // 0x62
         final int[] didIds = new int[perDid.size()];
         for (int i = 0; i < perDid.size(); i++) {
@@ -135,6 +135,7 @@ public final class SUBUDSAddressPlan {
             for (long[] r : perDid.get(i)) {
                 for (int k = 0; k < r[1]; k++) {
                     offsetOf.put(r[0] + k, offset + k);
+                    didOf.put(r[0] + k, i);
                 }
                 offset += (int) r[1];
             }
@@ -146,15 +147,23 @@ public final class SUBUDSAddressPlan {
         }
 
         final Map<String, int[]> positions = new HashMap<String, int[]>();
+        final List<List<String>> names = new ArrayList<List<String>>();
+        for (int i = 0; i < perDid.size(); i++) {
+            names.add(new ArrayList<String>());
+        }
         for (Map.Entry<String, long[]> e : queryBytes.entrySet()) {
             final long[] bytes = e.getValue();
             final int[] pos = new int[bytes.length];
             for (int k = 0; k < bytes.length; k++) {
                 pos[k] = offsetOf.get(bytes[k]);
+                final List<String> n = names.get(didOf.get(bytes[k]));
+                if (!n.contains(queryNames.get(e.getKey()))) {
+                    n.add(queryNames.get(e.getKey()));
+                }
             }
             positions.put(e.getKey(), pos);
         }
-        return new SUBUDSAddressPlan(didIds, perDid, positions, offset);
+        return new SUBUDSAddressPlan(didIds, perDid, positions, names, offset);
     }
 
     /**
@@ -207,6 +216,11 @@ public final class SUBUDSAddressPlan {
             n += r.size();
         }
         return n;
+    }
+
+    /** Names of the parameters whose bytes identifier number i (0 = 0xF300) carries. */
+    public List<String> getParameterNames(int i) {
+        return Collections.unmodifiableList(names.get(i));
     }
 
     /** Offset of each data byte of the query within the 0x62 reply (the 0x62 byte is offset 0). */

@@ -45,6 +45,8 @@ public interface LoggerProtocolSUBUDS extends LoggerProtocol {
 
     boolean isDefinitionLost(byte[] response);
 
+    boolean isAddressRefused(byte[] response);
+
     void processReadAddressResponses(
             Module module, Collection<EcuQuery> queries, byte[] response, SUBUDSAddressPlan plan);
 
