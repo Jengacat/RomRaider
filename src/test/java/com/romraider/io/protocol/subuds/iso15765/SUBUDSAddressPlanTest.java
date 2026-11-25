@@ -155,6 +155,15 @@ public class SUBUDSAddressPlanTest {
     }
 
     @Test
+    public void eightDigitAddressesFromFF000000Down() {
+        // a 2022+ ECU's RAM, written with all 8 digits
+        final List<EcuQuery> queries = new ArrayList<EcuQuery>();
+        queries.add(query("R01", "0xFEF03BFE", 2, "uint16"));
+        final SUBUDSAddressPlan plan = SUBUDSAddressPlan.build(queries);
+        assertArrayEquals(new long[]{0xFEF03BFEL, 2}, plan.getRanges(0).get(0));
+    }
+
+    @Test
     public void parametersPerIdentifier() {
         final List<EcuQuery> queries = new ArrayList<EcuQuery>();
         for (int i = 0; i < 11; i++) {

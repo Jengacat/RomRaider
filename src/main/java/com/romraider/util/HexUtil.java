@@ -159,7 +159,9 @@ public final class HexUtil {
      * @return integer value
      */
     public static int hexToInt(String input) {
-        return Integer.parseInt(input.replace("0x",""), 16);
+        // parsed as a long so that 32-bit addresses from 0x80000000 up (e.g. RAM at
+        // 0xFEF00000) are accepted; the bits are kept, so the int may be negative
+        return (int) Long.parseLong(input.replace("0x",""), 16);
     }
 
     /**
