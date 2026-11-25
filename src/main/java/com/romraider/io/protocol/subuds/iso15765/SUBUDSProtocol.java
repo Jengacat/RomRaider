@@ -36,12 +36,12 @@ import com.romraider.logger.ecu.exception.InvalidResponseException;
 import com.romraider.logger.ecu.exception.UnsupportedProtocolException;
 
 /**
- * Requests: AA (ECU ID, as SSM), 10 03 / 10 01 (session), 2C 03 (clear),
+ * Requests: 22 F182 (ECU ID: the same 5 bytes as the SSM ID), 10 03 / 10 01 (session), 2C 03 (clear),
  * 2C 02 F3xx 14 {addr4 len1}.. (define), 22 F3xx.. (read).
  */
 public final class SUBUDSProtocol implements ProtocolSUBUDS {
-    public static final byte ECU_INIT_COMMAND = (byte) 0xAA;
-    public static final byte ECU_INIT_RESPONSE = (byte) 0xEA;
+    public static final byte[] ECU_ID_DID = {(byte) 0xF1, (byte) 0x82};
+    public static final int ECU_ID_LENGTH = 5;
     public static final byte SESSION_COMMAND = (byte) 0x10;
     public static final byte SESSION_RESPONSE = (byte) 0x50;
     public static final byte SESSION_DEFAULT = (byte) 0x01;
@@ -63,7 +63,7 @@ public final class SUBUDSProtocol implements ProtocolSUBUDS {
     public byte[] constructEcuInitRequest(Module module) {
         checkNotNull(module, "module");
         this.module = module;
-        return buildRequest(ECU_INIT_COMMAND);
+        return buildRequest(READ_DID_COMMAND, ECU_ID_DID);
     }
 
     @Override
@@ -204,16 +204,28 @@ public final class SUBUDSProtocol implements ProtocolSUBUDS {
     public void checkValidEcuInitResponse(byte[] processedResponse) {
         checkNotNullOrEmpty(processedResponse, "processedResponse");
         SUBUDSResponseProcessor.validateResponse(module, processedResponse);
-        if (processedResponse[RESPONSE_NON_DATA_BYTES] != ECU_INIT_RESPONSE) {
+        final int base = RESPONSE_NON_DATA_BYTES;
+        if (processedResponse.length < base + 3 + ECU_ID_LENGTH
+                || processedResponse[base] != READ_DID_RESPONSE
+                || processedResponse[base + 1] != ECU_ID_DID[0]
+                || processedResponse[base + 2] != ECU_ID_DID[1]) {
             throw new InvalidResponseException(
-                    "Unexpected ECU init response: " + asHex(processedResponse));
+                    "Unexpected ECU ID response: " + asHex(processedResponse));
         }
     }
 
+    /**
+     * The ECU ID from 22 F182: five bytes, the same as the ID in the SSM init
+     * reply (checked in emulation on every 2014-2021 image), so logger
+     * definitions written for SSM IDs match. There are no SSM capability bytes:
+     * parameters in a SUBUDS section are matched by ECU ID, not by ecubyte/bit.
+     */
     @Override
     public EcuInit parseEcuInitResponse(byte[] processedResponse) {
         checkValidEcuInitResponse(processedResponse);
-        return new SSMEcuInit(parseResponseData(processedResponse));
+        final byte[] id = new byte[ECU_ID_LENGTH];
+        System.arraycopy(processedResponse, RESPONSE_NON_DATA_BYTES + 3, id, 0, ECU_ID_LENGTH);
+        return new SSMEcuInit(id, asHex(id));
     }
 
     @Override

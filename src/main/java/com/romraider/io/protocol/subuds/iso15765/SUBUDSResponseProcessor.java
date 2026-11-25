@@ -19,7 +19,6 @@
 
 package com.romraider.io.protocol.subuds.iso15765;
 
-import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.ECU_INIT_RESPONSE;
 import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.LOAD_ADDRESS_RESPONSE;
 import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.NRC;
 import static com.romraider.io.protocol.subuds.iso15765.SUBUDSProtocol.READ_DID_RESPONSE;
@@ -57,8 +56,7 @@ public final class SUBUDSResponseProcessor {
                     response.length > 6 ? describeNrc(response[6]) : "no code",
                     response.length > 6 ? asHex(response[6]) : "?"));
         }
-        assertOneOf(new byte[]{ECU_INIT_RESPONSE, SESSION_RESPONSE, LOAD_ADDRESS_RESPONSE,
-                READ_DID_RESPONSE},
+        assertOneOf(new byte[]{SESSION_RESPONSE, LOAD_ADDRESS_RESPONSE, READ_DID_RESPONSE},
                 response[RESPONSE_NON_DATA_BYTES], "Invalid response code");
     }
 
