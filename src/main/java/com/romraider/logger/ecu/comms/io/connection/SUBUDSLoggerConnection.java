@@ -46,7 +46,7 @@ import com.romraider.util.SettingsManager;
 
 /**
  * Subaru UDS logging over CAN: open the extended session, identify the ECU with
- * the SSM init request, define dynamic identifiers by RAM address once per
+ * 22 F182 (its SSM ID), define dynamic identifiers by RAM address once per
  * parameter selection, then read them all with one 0x22 request per poll.
  * If the ECU drops the session (its definitions are then cleared and a read
  * answers 7F 22 31), the session is opened again and the identifiers redefined.

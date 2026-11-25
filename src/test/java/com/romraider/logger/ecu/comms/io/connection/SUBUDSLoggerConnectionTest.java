@@ -141,7 +141,7 @@ public class SUBUDSLoggerConnectionTest {
     public void ecuIdIsTheSsmOne() {
         final TranscriptManager m = new TranscriptManager()
                 .expect("1003", "5003")
-                .expect("AA", "EAA3100F8B145A7A074180800000000000");
+                .expect("22F182", "62F1828B145A7A07");
         final SUBUDSLoggerConnection c = new SUBUDSLoggerConnection(m, new SUBUDSLoggerProtocol());
         final String[] id = new String[1];
         c.ecuInit(new EcuInitCallback() {
