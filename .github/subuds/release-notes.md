@@ -1,6 +1,6 @@
 Unofficial test build of RomRaider, not a RomRaider release. It's RomRaider 1.1.1 plus a new logger protocol,
 **SUBUDS**: RAM logging over UDS on CAN for the 2015-2021 Subaru DIT ECUs (WRX, Forester XT, Levorg 2.0 and 1.6,
-Legacy / Outback, Ascent and Legacy / Outback XT). It defines the
+Legacy / Outback, Ascent and Legacy / Outback XT), and a first try on the 2022+ WRX. It defines the
 selected parameters' RAM addresses with service 0x2C and reads them all back with one 0x22 request per poll, in the
 extended diagnostic session, with no security access. Nothing is written to the ECU.
 
@@ -10,14 +10,19 @@ the parameters read through SUBUDS return the same bytes as SSM.
 ### What to download
 
 * `RomRaider-SUBUDS-@TAG@-windows.zip` (or `-linux.zip`)
-* `DIT_Logger_SUBUDS.xml`: the logger definition with the SUBUDS section, for every supported ROM (the stock
-  parameters plus those that otherwise need the logging patch; with SUBUDS they work on a stock ROM).
+* `DIT_Logger_SUBUDS.xml`: the logger definition with the SUBUDS section, for every supported 2015-2021 ROM (the
+  stock parameters plus those that otherwise need the logging patch; with SUBUDS they work on a stock ROM).
+* `RH850_Logger_SUBUDS.xml`: 2022+ WRX only (LHBHB10B, LHBKC40M, LHBP400b, LHBT210V): 39 values (rpm, boost actual
+  and target, wastegate, lambda, MAF, load, timing, both knock corrections, DAM, injector pulse, rail pressure, cams,
+  temperatures, gear, battery, TGV and more). This ECU takes these requests only on CAN ID 0x7A2, not the usual
+  0x7E0, and it isn't known yet whether the car passes 0x7A2 through the OBD port. If it doesn't, nothing will log.
 
 ### How to test
 
 1. Unzip anywhere (it runs alongside an installed RomRaider). On Windows the OpenPort 2.0 needs **32-bit Java 8**,
    the same one an installed RomRaider uses; if `javaw.exe` isn't the 32-bit one, set `java_path` in `run.bat`.
-2. Run `run.bat`, open the Logger, and load `DIT_Logger_SUBUDS.xml` as the logger definition.
+2. Run `run.bat`, open the Logger, and load `DIT_Logger_SUBUDS.xml` (2015-2021) or `RH850_Logger_SUBUDS.xml`
+   (2022+ WRX) as the logger definition.
 3. Settings → Logger Protocol → **SUBUDS**, port = your OpenPort (J2534).
 4. Ignition on (engine running is fine), select a few parameters, and start logging.
 5. Please open an issue with your ROM's calibration ID and the result, good or bad. If it fails,
