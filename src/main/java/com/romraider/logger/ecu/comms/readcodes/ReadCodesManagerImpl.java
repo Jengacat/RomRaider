@@ -65,25 +65,31 @@ public final class ReadCodesManagerImpl implements ReadCodesManager {
     @Override
     public final int readCodes() {
         final ArrayList<EcuQuery> queries = new ArrayList<EcuQuery>();
-        String lastCode = dtcodes.get(dtcodes.size() - 1).getId();
-        if (ecuInitLength < 104) {
-            lastCode = "D488";
-        }
-        else if (ecuInitLength < 56) {
-            lastCode = "D256";
+        final Settings settings = SettingsManager.getSettings();
+        // An SSM ECU with shorter init data supports fewer codes: stop before D256
+        // or D488 when the list has them. Otherwise every code in the list is read.
+        int end = dtcodes.size();
+        if ("SSM".equalsIgnoreCase(settings.getLoggerProtocol())) {
+            final String lastCode = ecuInitLength < 56 ? "D256"
+                                  : ecuInitLength < 104 ? "D488" : null;
+            for (int i = 0; lastCode != null && i < dtcodes.size(); i++) {
+                if (dtcodes.get(i).getId().equals(lastCode)) {
+                    end = i;
+                    break;
+                }
+            }
         }
         if (LOGGER.isDebugEnabled())
             LOGGER.debug(
                 "DT codes ECU init length: " + ecuInitLength +
-                ", Last code: " + lastCode);
+                ", codes read: " + end + " of " + dtcodes.size());
 
-        for (int i = 0; !dtcodes.get(i).getId().equals(lastCode); i++) {
+        for (int i = 0; i < end; i++) {
             queries.add(new EcuQueryImpl(dtcodes.get(i)));
             if (LOGGER.isDebugEnabled())
                 LOGGER.debug("Adding query for DTC: " + dtcodes.get(i).getName());
         }
 
-        final Settings settings = SettingsManager.getSettings();
         final String target = settings.getDestinationTarget().getName().toUpperCase();
         try {
             final LoggerConnection connection = getConnection(

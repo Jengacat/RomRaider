@@ -44,10 +44,13 @@ import com.romraider.logger.ecu.comms.query.EcuQuery;
 import com.romraider.logger.ecu.comms.query.EcuQueryImpl;
 import com.romraider.logger.ecu.definition.EcuAddressImpl;
 import com.romraider.logger.ecu.definition.EcuDataConvertor;
+import com.romraider.logger.ecu.definition.EcuDtcConvertorImpl;
+import com.romraider.logger.ecu.definition.EcuSwitchImpl;
 import com.romraider.logger.ecu.definition.EcuParameterConvertorImpl;
 import com.romraider.logger.ecu.definition.EcuParameterImpl;
 import com.romraider.logger.ecu.definition.Module;
 import com.romraider.logger.ecu.definition.xml.ConverterMaxMinDefaults;
+import com.romraider.logger.ecu.exception.InvalidResponseException;
 
 /**
  * The connection against replies recorded from the ECU's own code: each request
@@ -227,6 +230,66 @@ public class SUBUDSLoggerConnectionTest {
         catch (com.romraider.logger.ecu.exception.InvalidResponseException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("J01"));
             assertTrue(expected.getMessage(), expected.getMessage().contains("V01"));
+        }
+    }
+
+    /** A trouble code entry as LoggerDefinitionHandler builds it: the code number as both addresses. */
+    private static EcuQuery code(String id, String number) {
+        return new EcuQueryImpl(new EcuSwitchImpl(id, id, id,
+                new EcuAddressImpl(new String[]{number, number}, 1, 0), null, null, null,
+                new EcuDataConvertor[]{new EcuDtcConvertorImpl(0)}));
+    }
+
+    /**
+     * Reply recorded from the ECU's own 0x19 handler (LF75404S, run in emulation) with P0335 pending and stored,
+     * P0244 stored and P0101 pending: 59 02, availability mask 7F, then code + status for each.
+     */
+    private static final String DTC_REPLY = "59027F" + "0003352E" + "00024428" + "00010106";
+
+    @Test
+    public void troubleCodesInOneRequest() {
+        final TranscriptManager m = new TranscriptManager()
+                .expect("1003", "5003")
+                .expect("1902FF", DTC_REPLY);
+        final SUBUDSLoggerConnection c = new SUBUDSLoggerConnection(m, new SUBUDSLoggerProtocol());
+        final List<EcuQuery> q = new ArrayList<EcuQuery>();
+        q.add(code("D001", "0x000335"));   // P0335
+        q.add(code("D002", "0x000244"));   // P0244
+        q.add(code("D003", "0x000101"));   // P0101
+        q.add(code("D004", "0x000420"));   // P0420, not set
+        c.sendAddressReads(q, ECU, new PollingStateImpl());
+        assertEquals(3, q.get(0).getResponse(), 0);   // pending and stored
+        assertEquals(2, q.get(1).getResponse(), 0);   // stored
+        assertEquals(1, q.get(2).getResponse(), 0);   // pending
+        assertEquals(0, q.get(3).getResponse(), 0);
+        assertEquals(2, m.sent.size());                 // no identifiers defined for trouble codes
+    }
+
+    @Test
+    public void noTroubleCodes() {
+        final TranscriptManager m = new TranscriptManager()
+                .expect("1003", "5003")
+                .expect("1902FF", "59027F");
+        final SUBUDSLoggerConnection c = new SUBUDSLoggerConnection(m, new SUBUDSLoggerProtocol());
+        final List<EcuQuery> q = new ArrayList<EcuQuery>();
+        q.add(code("D001", "0x000335"));
+        c.sendAddressReads(q, ECU, new PollingStateImpl());
+        assertEquals(0, q.get(0).getResponse(), 0);
+    }
+
+    @Test
+    public void troubleCodeRefusalIsReported() {
+        final TranscriptManager m = new TranscriptManager()
+                .expect("1003", "5003")
+                .expect("1902FF", "7F1922");
+        final SUBUDSLoggerConnection c = new SUBUDSLoggerConnection(m, new SUBUDSLoggerProtocol());
+        final List<EcuQuery> q = new ArrayList<EcuQuery>();
+        q.add(code("D001", "0x000335"));
+        try {
+            c.sendAddressReads(q, ECU, new PollingStateImpl());
+            fail("refusal not reported");
+        } catch (InvalidResponseException expected) {
+            assertTrue(expected.getMessage(), expected.getMessage().contains("conditions not correct"));
         }
     }
 }

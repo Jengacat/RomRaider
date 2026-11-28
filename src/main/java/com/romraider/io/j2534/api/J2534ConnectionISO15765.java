@@ -35,6 +35,9 @@ import com.romraider.util.SettingsManager;
 
 public final class J2534ConnectionISO15765 implements ConnectionManager {
     private static final Logger LOGGER = getLogger(J2534ConnectionISO15765.class);
+    /** Response-pending replies accepted before giving up, and the wait after each (ISO 14229 P2* is 5 s). */
+    private static final int MAX_PENDING = 10;
+    private static final long PENDING_TIMEOUT = 5000;
     private J2534 api;
     private int channelId;
     private int deviceId;
@@ -82,12 +85,27 @@ public final class J2534ConnectionISO15765 implements ConnectionManager {
         System.arraycopy(readMsg, 0, response, 0, readMsg.length) ;
     }
 
-    // Send request and wait specified time for one response with unknown length
+    // Send request and wait specified time for one response with unknown length.
+    // A UDS module that needs more time answers 7F <service> 78 (response pending)
+    // and sends the real response later; keep reading until it arrives.
     @Override
     public byte[] send(byte[] request) {
         checkNotNull(request, "request");
         api.writeMsg(channelId, request, timeout, TxFlags.ISO15765_FRAME_PAD);
-        return api.readMsg(channelId, 1, timeout);
+        byte[] response = api.readMsg(channelId, 1, timeout);
+        int pending = 0;
+        while (isResponsePending(response) && pending++ < MAX_PENDING) {
+            if (LOGGER.isDebugEnabled())
+                LOGGER.debug(String.format("Response pending <--- %s", asHex(response)));
+            response = api.readMsg(channelId, 1, PENDING_TIMEOUT);
+        }
+        return response;
+    }
+
+    /** CAN ID (4 bytes), then 7F, the service and NRC 0x78 (requestCorrectlyReceived-ResponsePending). */
+    static boolean isResponsePending(byte[] response) {
+        return response != null && response.length == 7
+                && response[4] == (byte) 0x7F && response[6] == (byte) 0x78;
     }
 
     @Override

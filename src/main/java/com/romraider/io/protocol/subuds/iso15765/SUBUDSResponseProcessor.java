@@ -56,7 +56,8 @@ public final class SUBUDSResponseProcessor {
                     response.length > 6 ? describeNrc(response[6]) : "no code",
                     response.length > 6 ? asHex(response[6]) : "?"));
         }
-        assertOneOf(new byte[]{SESSION_RESPONSE, LOAD_ADDRESS_RESPONSE, READ_DID_RESPONSE},
+        assertOneOf(new byte[]{SESSION_RESPONSE, LOAD_ADDRESS_RESPONSE, READ_DID_RESPONSE,
+                        SUBUDSTroubleCodes.READ_DTC_RESPONSE},
                 response[RESPONSE_NON_DATA_BYTES], "Invalid response code");
     }
 
@@ -80,6 +81,7 @@ public final class SUBUDSResponseProcessor {
             case 0x24: return "request sequence error";
             case 0x31: return "request out of range";
             case 0x33: return "security access denied";
+            case 0x78: return "response pending";
             case 0x7E: return "sub-function not supported in active session";
             case 0x7F: return "service not supported in active session";
             default: return "unknown";
