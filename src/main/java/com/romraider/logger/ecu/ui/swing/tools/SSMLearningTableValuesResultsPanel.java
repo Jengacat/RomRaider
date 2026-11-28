@@ -82,6 +82,8 @@ public class SSMLearningTableValuesResultsPanel extends JDialog {
     private JTable afLearningTable;
     private JTable flkcTable;
     private final String FLKC_NAME = rb.getString("FLKCNAME");
+    private String afRangesLabel = rb.getString("AFRANGES");
+    private String afRowsLabel = rb.getString("BANK");
 
     public SSMLearningTableValuesResultsPanel(
             EcuLogger logger,
@@ -91,8 +93,27 @@ public class SSMLearningTableValuesResultsPanel extends JDialog {
             String[] flkcLoad,
             String[] flkcRpm,
             List<List<EcuQuery>> flkcData) {
+        this(logger, vehicleInfo, afRanges, afLearning, flkcLoad, flkcRpm, flkcData, null, null);
+    }
+
+    /**
+     * As above, with the A/F learning axis titles (null keeps the defaults:
+     * airflow ranges across, bank down), for ECUs that learn A/F by other ranges.
+     */
+    public SSMLearningTableValuesResultsPanel(
+            EcuLogger logger,
+            Map<String, Object> vehicleInfo,
+            String[] afRanges,
+            List<List<Object>> afLearning,
+            String[] flkcLoad,
+            String[] flkcRpm,
+            List<List<EcuQuery>> flkcData,
+            String afRangesLabel,
+            String afRowsLabel) {
 
         super(logger, false);
+        if (afRangesLabel != null) this.afRangesLabel = afRangesLabel;
+        if (afRowsLabel != null) this.afRowsLabel = afRowsLabel;
         setIconImage(logger.getIconImage());
         setTitle(DIALOG_TITLE);
         setBounds(
@@ -176,12 +197,12 @@ public class SSMLearningTableValuesResultsPanel extends JDialog {
         afLearningTitlePanel.setBounds(10, 72, 450, 100);
         afLearningTitlePanel.setLayout(new BorderLayout(0, 0));
 
-        final JLabel xLabel = new JLabel(rb.getString("AFRANGES"));
+        final JLabel xLabel = new JLabel(afRangesLabel);
         SetFont.plain(xLabel);
         xLabel.setHorizontalAlignment(SwingConstants.CENTER);
         afLearningTitlePanel.add(xLabel, BorderLayout.NORTH);
 
-        final JLabel yLabel = new JLabel(rb.getString("BANK"));
+        final JLabel yLabel = new JLabel(afRowsLabel);
         SetFont.plain(yLabel);
         yLabel.setUI(new VerticalLabelUI(false));
         afLearningTitlePanel.add(yLabel, BorderLayout.WEST);
