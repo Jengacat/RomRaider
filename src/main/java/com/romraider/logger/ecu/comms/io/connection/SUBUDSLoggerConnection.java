@@ -33,6 +33,7 @@ import org.apache.log4j.Logger;
 import com.romraider.io.connection.ConnectionManager;
 import com.romraider.io.protocol.ProtocolFactory;
 import com.romraider.io.protocol.subuds.iso15765.SUBUDSAddressPlan;
+import com.romraider.io.protocol.subuds.iso15765.SUBUDSTroubleCodes;
 import com.romraider.logger.ecu.comms.io.protocol.LoggerProtocolSUBUDS;
 import com.romraider.logger.ecu.comms.manager.PollingState;
 import com.romraider.logger.ecu.comms.manager.PollingStateImpl;
@@ -50,6 +51,7 @@ import com.romraider.util.SettingsManager;
  * parameter selection, then read them all with one 0x22 request per poll.
  * If the ECU drops the session (its definitions are then cleared and a read
  * answers 7F 22 31), the session is opened again and the identifiers redefined.
+ * Read Codes is one ReadDTCInformation request (SUBUDSTroubleCodes).
  */
 public final class SUBUDSLoggerConnection implements LoggerConnection {
     private static final Logger LOGGER = getLogger(SUBUDSLoggerConnection.class);
@@ -103,6 +105,10 @@ public final class SUBUDSLoggerConnection implements LoggerConnection {
             PollingState pollState) {
 
         if (!commsStarted) open(module);
+        if (SUBUDSTroubleCodes.isTroubleCodeQuery(queries)) {
+            readTroubleCodes(queries, module);
+            return;
+        }
         final String key = queryKey(queries);
         if (plan == null || !key.equals(planKey)) {
             loadAddresses(queries, module);
@@ -178,6 +184,17 @@ public final class SUBUDSLoggerConnection implements LoggerConnection {
             }
             protocol.validateLoadAddressResponse(response, dids[i]);
         }
+    }
+
+    /** Read Codes: one 19 02 FF answers for every code in the list (the connection waits out 7F 19 78). */
+    private void readTroubleCodes(Collection<EcuQuery> queries, Module module) {
+        final byte[] request = SUBUDSTroubleCodes.constructRequest(module);
+        if (LOGGER.isDebugEnabled())
+            LOGGER.debug(String.format("%s Trouble code request  ---> %s", module, asHex(request)));
+        final byte[] response = manager.send(request);
+        if (LOGGER.isDebugEnabled())
+            LOGGER.debug(String.format("%s Trouble code response <--- %s", module, asHex(response)));
+        SUBUDSTroubleCodes.apply(queries, SUBUDSTroubleCodes.parseResponse(module, response));
     }
 
     private byte[] readAddresses(Module module, PollingState pollState) {
